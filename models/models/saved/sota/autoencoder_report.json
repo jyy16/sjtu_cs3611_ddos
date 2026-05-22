@@ -1,0 +1,1113 @@
+{
+  "threshold": 0.017328735440969467,
+  "best_epoch": 63,
+  "epochs_ran": 80,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.8821904063224792,
+      "valid_loss": 0.7820910215377808
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.7674939036369324,
+      "valid_loss": 0.6782162189483643
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.6647458076477051,
+      "valid_loss": 0.586583137512207
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.5740833878517151,
+      "valid_loss": 0.5070261359214783
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.49555468559265137,
+      "valid_loss": 0.43505555391311646
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.4246687591075897,
+      "valid_loss": 0.368055135011673
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.35881364345550537,
+      "valid_loss": 0.30610689520835876
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.29803526401519775,
+      "valid_loss": 0.24827846884727478
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.24153296649456024,
+      "valid_loss": 0.19661429524421692
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.19128850102424622,
+      "valid_loss": 0.1511414647102356
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.14731627702713013,
+      "valid_loss": 0.11251282691955566
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.11021478474140167,
+      "valid_loss": 0.0816984474658966
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.08093053847551346,
+      "valid_loss": 0.059638090431690216
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.06033744663000107,
+      "valid_loss": 0.046320416033267975
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.04833187907934189,
+      "valid_loss": 0.04060368239879608
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.0436699278652668,
+      "valid_loss": 0.039568740874528885
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.043418485671281815,
+      "valid_loss": 0.0406593419611454
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.04496282711625099,
+      "valid_loss": 0.04168292135000229
+    },
+    {
+      "epoch": 19,
+      "train_loss": 0.04613152891397476,
+      "valid_loss": 0.041346482932567596
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.04569327458739281,
+      "valid_loss": 0.03934888541698456
+    },
+    {
+      "epoch": 21,
+      "train_loss": 0.043429020792245865,
+      "valid_loss": 0.036108605563640594
+    },
+    {
+      "epoch": 22,
+      "train_loss": 0.03989440202713013,
+      "valid_loss": 0.03207524120807648
+    },
+    {
+      "epoch": 23,
+      "train_loss": 0.03549749031662941,
+      "valid_loss": 0.02797294408082962
+    },
+    {
+      "epoch": 24,
+      "train_loss": 0.030976897105574608,
+      "valid_loss": 0.024367783218622208
+    },
+    {
+      "epoch": 25,
+      "train_loss": 0.026915917173027992,
+      "valid_loss": 0.021533431485295296
+    },
+    {
+      "epoch": 26,
+      "train_loss": 0.023613307625055313,
+      "valid_loss": 0.019562670961022377
+    },
+    {
+      "epoch": 27,
+      "train_loss": 0.021204542368650436,
+      "valid_loss": 0.018035179004073143
+    },
+    {
+      "epoch": 28,
+      "train_loss": 0.019311465322971344,
+      "valid_loss": 0.01666773483157158
+    },
+    {
+      "epoch": 29,
+      "train_loss": 0.017606094479560852,
+      "valid_loss": 0.015636328607797623
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.016247421503067017,
+      "valid_loss": 0.01495946105569601
+    },
+    {
+      "epoch": 31,
+      "train_loss": 0.015261340886354446,
+      "valid_loss": 0.014618327841162682
+    },
+    {
+      "epoch": 32,
+      "train_loss": 0.014635308645665646,
+      "valid_loss": 0.0145640904083848
+    },
+    {
+      "epoch": 33,
+      "train_loss": 0.014325552619993687,
+      "valid_loss": 0.014727174304425716
+    },
+    {
+      "epoch": 34,
+      "train_loss": 0.014266389422118664,
+      "valid_loss": 0.015027275308966637
+    },
+    {
+      "epoch": 35,
+      "train_loss": 0.014380229637026787,
+      "valid_loss": 0.015382865443825722
+    },
+    {
+      "epoch": 36,
+      "train_loss": 0.01458714809268713,
+      "valid_loss": 0.015719294548034668
+    },
+    {
+      "epoch": 37,
+      "train_loss": 0.01481308788061142,
+      "valid_loss": 0.015975015237927437
+    },
+    {
+      "epoch": 38,
+      "train_loss": 0.01499614492058754,
+      "valid_loss": 0.016105588525533676
+    },
+    {
+      "epoch": 39,
+      "train_loss": 0.015090666711330414,
+      "valid_loss": 0.016085444018244743
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.015069167129695415,
+      "valid_loss": 0.01590765453875065
+    },
+    {
+      "epoch": 41,
+      "train_loss": 0.014922135509550571,
+      "valid_loss": 0.015581945888698101
+    },
+    {
+      "epoch": 42,
+      "train_loss": 0.014656190760433674,
+      "valid_loss": 0.015131471678614616
+    },
+    {
+      "epoch": 43,
+      "train_loss": 0.01429093349725008,
+      "valid_loss": 0.014588722959160805
+    },
+    {
+      "epoch": 44,
+      "train_loss": 0.013854951597750187,
+      "valid_loss": 0.013991182669997215
+    },
+    {
+      "epoch": 45,
+      "train_loss": 0.013381553813815117,
+      "valid_loss": 0.01337700616568327
+    },
+    {
+      "epoch": 46,
+      "train_loss": 0.012904573231935501,
+      "valid_loss": 0.012781242839992046
+    },
+    {
+      "epoch": 47,
+      "train_loss": 0.012454639188945293,
+      "valid_loss": 0.012232804670929909
+    },
+    {
+      "epoch": 48,
+      "train_loss": 0.012056272476911545,
+      "valid_loss": 0.011752484366297722
+    },
+    {
+      "epoch": 49,
+      "train_loss": 0.011725994758307934,
+      "valid_loss": 0.011352019384503365
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.011471502482891083,
+      "valid_loss": 0.011034324765205383
+    },
+    {
+      "epoch": 51,
+      "train_loss": 0.011291977018117905,
+      "valid_loss": 0.010794591158628464
+    },
+    {
+      "epoch": 52,
+      "train_loss": 0.011179313063621521,
+      "valid_loss": 0.010622193105518818
+    },
+    {
+      "epoch": 53,
+      "train_loss": 0.011120090261101723,
+      "valid_loss": 0.010502985678613186
+    },
+    {
+      "epoch": 54,
+      "train_loss": 0.01109795831143856,
+      "valid_loss": 0.010421684011816978
+    },
+    {
+      "epoch": 55,
+      "train_loss": 0.011096051894128323,
+      "valid_loss": 0.010364034213125706
+    },
+    {
+      "epoch": 56,
+      "train_loss": 0.01109920535236597,
+      "valid_loss": 0.010318462736904621
+    },
+    {
+      "epoch": 57,
+      "train_loss": 0.011095591820776463,
+      "valid_loss": 0.010277075693011284
+    },
+    {
+      "epoch": 58,
+      "train_loss": 0.01107770949602127,
+      "valid_loss": 0.010235943831503391
+    },
+    {
+      "epoch": 59,
+      "train_loss": 0.01104260329157114,
+      "valid_loss": 0.010194742120802402
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.010991433635354042,
+      "valid_loss": 0.010155879892408848
+    },
+    {
+      "epoch": 61,
+      "train_loss": 0.01092852745205164,
+      "valid_loss": 0.010123346000909805
+    },
+    {
+      "epoch": 62,
+      "train_loss": 0.010860111564397812,
+      "valid_loss": 0.010101496241986752
+    },
+    {
+      "epoch": 63,
+      "train_loss": 0.010792989283800125,
+      "valid_loss": 0.010093951597809792
+    },
+    {
+      "epoch": 64,
+      "train_loss": 0.010733346454799175,
+      "valid_loss": 0.010102801956236362
+    },
+    {
+      "epoch": 65,
+      "train_loss": 0.01068583969026804,
+      "valid_loss": 0.010128164663910866
+    },
+    {
+      "epoch": 66,
+      "train_loss": 0.010653051547706127,
+      "valid_loss": 0.01016810443252325
+    },
+    {
+      "epoch": 67,
+      "train_loss": 0.010635360144078732,
+      "valid_loss": 0.010218951851129532
+    },
+    {
+      "epoch": 68,
+      "train_loss": 0.01063115056604147,
+      "valid_loss": 0.01027579978108406
+    },
+    {
+      "epoch": 69,
+      "train_loss": 0.010637287050485611,
+      "valid_loss": 0.01033317856490612
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.010649737901985645,
+      "valid_loss": 0.010385761968791485
+    },
+    {
+      "epoch": 71,
+      "train_loss": 0.010664264671504498,
+      "valid_loss": 0.010428971610963345
+    },
+    {
+      "epoch": 72,
+      "train_loss": 0.010677015408873558,
+      "valid_loss": 0.010459446348249912
+    },
+    {
+      "epoch": 73,
+      "train_loss": 0.010684999637305737,
+      "valid_loss": 0.010475313290953636
+    },
+    {
+      "epoch": 74,
+      "train_loss": 0.010686375200748444,
+      "valid_loss": 0.010476229712367058
+    },
+    {
+      "epoch": 75,
+      "train_loss": 0.01068053487688303,
+      "valid_loss": 0.010463261976838112
+    },
+    {
+      "epoch": 76,
+      "train_loss": 0.010667995549738407,
+      "valid_loss": 0.010438610799610615
+    },
+    {
+      "epoch": 77,
+      "train_loss": 0.01065018679946661,
+      "valid_loss": 0.0104052210226655
+    },
+    {
+      "epoch": 78,
+      "train_loss": 0.010629096999764442,
+      "valid_loss": 0.010366381146013737
+    },
+    {
+      "epoch": 79,
+      "train_loss": 0.010606925003230572,
+      "valid_loss": 0.010325327515602112
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.010585742071270943,
+      "valid_loss": 0.010284936986863613
+    }
+  ],
+  "anomaly_precision": 0.9803921568627451,
+  "anomaly_recall": 1.0,
+  "anomaly_f1": 0.9900990099009901,
+  "roc_auc": 1.0,
+  "assignments": [
+    {
+      "row": 0,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.014581714756786823,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 1,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.0001825010112952441,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 2,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.017296867445111275,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 3,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.014543442055583,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 4,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.0002251777332276106,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 5,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.017258619889616966,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 6,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.014586144126951694,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 7,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.00018695472681429237,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 8,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.017301347106695175,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 9,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.01454794593155384,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 10,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.0002297064638696611,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 11,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.017263174057006836,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 12,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.014590722508728504,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 13,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.00019155842892359942,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 14,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.017305975779891014,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 15,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.014552599750459194,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 16,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.00023438516655005515,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 17,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.017267877236008644,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 18,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.014595450833439827,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 19,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.00019631216127891093,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 20,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.01731075346469879,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 21,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.01455740351229906,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 22,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.00023921465617604554,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 23,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.01727273128926754,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 24,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.014600330032408237,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 25,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.0002012162731261924,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 26,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.017315683886408806,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 27,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.01456235721707344,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 28,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.0002441930409986526,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 29,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.017277736216783524,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 30,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.014605359174311161,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 31,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.00020627042977139354,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 32,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.01732076331973076,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 33,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.014567461796104908,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 34,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.00024932221276685596,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 35,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.017282890155911446,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 36,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.014610538259148598,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 37,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.00021147420920897275,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 38,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.01732599176466465,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 39,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.014572715386748314,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 40,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.00025460097822360694,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 41,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.017288193106651306,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 42,
+      "src_ip": "10.0.0.12",
+      "reconstruction_error": 0.014615867286920547,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 43,
+      "src_ip": "10.0.0.13",
+      "reconstruction_error": 0.0002168280043406412,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 44,
+      "src_ip": "10.0.0.14",
+      "reconstruction_error": 0.01733137108385563,
+      "is_anomaly": true,
+      "label": "normal"
+    },
+    {
+      "row": 45,
+      "src_ip": "10.0.0.15",
+      "reconstruction_error": 0.014578119851648808,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 46,
+      "src_ip": "10.0.0.16",
+      "reconstruction_error": 0.00026003021048381925,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 47,
+      "src_ip": "10.0.0.17",
+      "reconstruction_error": 0.017293646931648254,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 48,
+      "src_ip": "10.0.0.10",
+      "reconstruction_error": 0.01462134625762701,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 49,
+      "src_ip": "10.0.0.11",
+      "reconstruction_error": 0.0002223322371719405,
+      "is_anomaly": false,
+      "label": "normal"
+    },
+    {
+      "row": 50,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.132020950317383,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 51,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 3.9764151573181152,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 52,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.173195838928223,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 53,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.017895221710205,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 54,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.21483850479126,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 55,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.059544086456299,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 56,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.2569475173950195,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 57,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.048979759216309,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 58,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.249589443206787,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 59,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.038435935974121,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 60,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.1698317527771,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 61,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.014589309692383,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 62,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.211348533630371,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 63,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.056413173675537,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 64,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.203619956970215,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 65,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.046545505523682,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 66,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.245506763458252,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 67,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.08814811706543,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 68,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.231873989105225,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 69,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.077287673950195,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 70,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.208154201507568,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 71,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.002917289733887,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 72,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.200019836425781,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 73,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.0444440841674805,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 74,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.241781711578369,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 75,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.085908889770508,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 76,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.284011363983154,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 77,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.0736918449401855,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 78,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.220608234405518,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 79,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.06508731842041,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 80,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.196714401245117,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 81,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.0412702560424805,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 82,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.238350868225098,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 83,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.083215713500977,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 84,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.280455589294434,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 85,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.073325157165527,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 86,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.2169294357299805,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 87,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.062316417694092,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 88,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.258790016174316,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 89,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.104159355163574,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 90,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.23521614074707,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 91,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.08013916015625,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 92,
+      "src_ip": "10.0.1.22",
+      "reconstruction_error": 4.227326393127441,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 93,
+      "src_ip": "10.0.1.23",
+      "reconstruction_error": 4.071280002593994,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 94,
+      "src_ip": "10.0.1.24",
+      "reconstruction_error": 4.269384860992432,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 95,
+      "src_ip": "10.0.1.25",
+      "reconstruction_error": 4.058906078338623,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 96,
+      "src_ip": "10.0.1.26",
+      "reconstruction_error": 4.2552809715271,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 97,
+      "src_ip": "10.0.1.27",
+      "reconstruction_error": 4.100813865661621,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 98,
+      "src_ip": "10.0.1.20",
+      "reconstruction_error": 4.297483444213867,
+      "is_anomaly": true,
+      "label": "attack"
+    },
+    {
+      "row": 99,
+      "src_ip": "10.0.1.21",
+      "reconstruction_error": 4.092314720153809,
+      "is_anomaly": true,
+      "label": "attack"
+    }
+  ]
+}

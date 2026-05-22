@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-05-22T08:26:01.345696+00:00",
+  "threshold": 0.5,
+  "decisions": [
+    {
+      "src_ip": "10.0.1.20",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999998,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.21",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999996,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.22",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999997,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.23",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999996,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.24",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999997,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.25",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999996,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.26",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999997,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.27",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999996,
+      "action": "block",
+      "reason": "model_detected_syn_flood"
+    }
+  ]
+}

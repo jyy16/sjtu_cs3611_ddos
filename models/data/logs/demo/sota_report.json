@@ -1,0 +1,101 @@
+{
+  "model": "sota_fusion_mlp_autoencoder_kmeans",
+  "input": "data/features/demo/synthetic_train.csv",
+  "overall": {
+    "fusion_threshold": 0.17,
+    "fusion_accuracy": 1.0,
+    "fusion_precision": 1.0,
+    "fusion_recall": 1.0,
+    "fusion_f1": 1.0,
+    "fusion_roc_auc": 1.0
+  },
+  "components": {
+    "mlp": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "best_threshold": 0.5
+    },
+    "autoencoder": {
+      "precision": 0.9803921568627451,
+      "recall": 1.0,
+      "f1": 0.9900990099009901,
+      "roc_auc": 1.0,
+      "threshold": 0.017328735440969467
+    },
+    "kmeans": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "cluster_purity": 1.0,
+      "silhouette": 0.9513221979141235
+    }
+  },
+  "decisions": [
+    {
+      "src_ip": "10.0.1.20",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999979,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.21",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999969,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.22",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999978,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.23",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999969,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.24",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999978,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.25",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999968,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.26",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.999977,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    },
+    {
+      "src_ip": "10.0.1.27",
+      "label": "attack",
+      "attack_type": "syn_flood",
+      "confidence": 0.99997,
+      "action": "block",
+      "reason": "sota_fusion_detected_syn_flood"
+    }
+  ]
+}
