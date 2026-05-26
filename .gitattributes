@@ -1,0 +1,4 @@
+*.sh text eol=lf
+*.py text eol=lf
+defense/nginx.conf text eol=lf
+scripts/demo.env.example text eol=lf

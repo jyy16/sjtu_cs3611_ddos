@@ -13,7 +13,11 @@ Options:
   -h, --help           Show this help.
 
 Environment:
+  DEFENSE_BACKEND      iptables or nftables. Default: iptables.
   IPTABLES             iptables binary name or path. Default: iptables.
+  NFT                  nft binary name or path when DEFENSE_BACKEND=nftables.
+  NFT_FAMILY           nftables family when DEFENSE_BACKEND=nftables. Default: inet.
+  NFT_TABLE_NAME       nftables table name. Default: sanitized project tag.
   SUDO                 sudo binary name or path. Default: sudo.
 
 Cleanup scope:
@@ -27,6 +31,30 @@ EOF
 die() {
   printf '[defense][error] %s\n' "$*" >&2
   exit 1
+}
+
+normalize_backend() {
+  local backend
+  backend="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$backend" in
+    iptables)
+      printf 'iptables\n'
+      ;;
+    nft|nftables)
+      printf 'nftables\n'
+      ;;
+    *)
+      die "DEFENSE_BACKEND must be iptables or nftables: $1"
+      ;;
+  esac
+}
+
+sanitize_identifier() {
+  local ident
+  ident="$(printf '%s' "$1" | sed 's/[^A-Za-z0-9_]/_/g')"
+  [[ -n "$ident" ]] || ident="cs3611_ddos"
+  [[ "$ident" =~ ^[A-Za-z_] ]] || ident="p_${ident}"
+  printf '%s' "$ident"
 }
 
 PROJECT_TAG=""
@@ -55,8 +83,38 @@ fi
 
 BASE_CHAIN="CS3611_DDOS"
 BLACKLIST_CHAIN="CS3611_DDOS_BL"
+DEFENSE_BACKEND="${DEFENSE_BACKEND:-iptables}"
 IPTABLES_BIN="${IPTABLES:-iptables}"
+NFT_BIN="${NFT:-nft}"
+NFT_FAMILY="${NFT_FAMILY:-inet}"
 SUDO_BIN="${SUDO:-sudo}"
+
+BACKEND="$(normalize_backend "$DEFENSE_BACKEND")"
+if [[ "$BACKEND" == "nftables" ]]; then
+  [[ "$NFT_FAMILY" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid nftables family: $NFT_FAMILY"
+  NFT_TABLE="${NFT_TABLE_NAME:-$(sanitize_identifier "$PROJECT_TAG")}"
+  [[ "$NFT_TABLE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "Invalid nftables table name: $NFT_TABLE"
+
+  command -v "$NFT_BIN" >/dev/null 2>&1 || die "nft command not found: $NFT_BIN"
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    NFT_CMD=("$NFT_BIN")
+  else
+    command -v "$SUDO_BIN" >/dev/null 2>&1 || die "not root and sudo command not found"
+    NFT_CMD=("$SUDO_BIN" "$NFT_BIN")
+  fi
+
+  nft_run() {
+    "${NFT_CMD[@]}" "$@"
+  }
+
+  if nft_run list table "$NFT_FAMILY" "$NFT_TABLE" >/dev/null 2>&1; then
+    nft_run delete table "$NFT_FAMILY" "$NFT_TABLE"
+  fi
+
+  printf '[defense] project nftables rules removed idempotently: family=%s table=%s tag=%s\n' \
+    "$NFT_FAMILY" "$NFT_TABLE" "$PROJECT_TAG"
+  exit 0
+fi
 
 command -v "$IPTABLES_BIN" >/dev/null 2>&1 || die "iptables command not found: $IPTABLES_BIN"
 

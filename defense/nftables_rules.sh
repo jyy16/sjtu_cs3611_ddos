@@ -5,7 +5,7 @@ TARGET_PORT="${TARGET_PORT:-8080}"
 SYN_RATE="${SYN_RATE:-50}"
 HTTP_RATE="${HTTP_RATE:-120}"
 PROJECT_TAG="${PROJECT_TAG:-cs3611-ddos}"
-TABLE_NAME=""
+TABLE_NAME="${NFT_TABLE_NAME:-}"
 FAMILY="${NFT_FAMILY:-inet}"
 NFT="${NFT:-nft}"
 SUDO="${SUDO-sudo}"
@@ -114,18 +114,19 @@ table $FAMILY $TABLE_NAME {
   }
 
   chain ddos_common {
-    ip saddr @blacklist_v4 counter drop comment "$COMMENT_TAG blacklist source"
+    ip saddr @blacklist_v4 counter drop comment "$COMMENT_TAG blacklist"
 
-    tcp flags & (fin|syn|rst|psh|ack|urg) == 0 counter drop comment "$COMMENT_TAG drop TCP null flags"
-    tcp flags & (fin|syn) == (fin|syn) counter drop comment "$COMMENT_TAG drop TCP SYN-FIN"
-    tcp flags & (syn|rst) == (syn|rst) counter drop comment "$COMMENT_TAG drop TCP SYN-RST"
-    tcp flags & (fin|psh|urg) == (fin|psh|urg) counter drop comment "$COMMENT_TAG drop TCP XMAS"
+    ct state invalid counter drop comment "$COMMENT_TAG drop-invalid"
+    tcp flags & (fin|syn|rst|psh|ack|urg) == 0 counter drop comment "$COMMENT_TAG drop-null-flags"
+    tcp flags & (fin|syn) == (fin|syn) counter drop comment "$COMMENT_TAG drop-syn-fin"
+    tcp flags & (syn|rst) == (syn|rst) counter drop comment "$COMMENT_TAG drop-syn-rst"
+    tcp flags & (fin|psh|urg) == (fin|psh|urg) counter drop comment "$COMMENT_TAG drop-xmas-flags"
 
-    tcp dport $TARGET_PORT tcp flags & (fin|syn|rst|ack) == syn meter syn_per_src { ip saddr limit rate over $SYN_RATE/second burst $syn_burst packets } counter drop comment "$COMMENT_TAG SYN per-source limit"
+    tcp dport $TARGET_PORT tcp flags & (fin|syn|rst|ack) == syn meter syn_per_src { ip saddr limit rate over $SYN_RATE/second burst $syn_burst packets } counter drop comment "$COMMENT_TAG syn-rate-limit"
 
-    tcp dport $TARGET_PORT ct state new meter http_conn_per_src { ip saddr limit rate over $HTTP_RATE/second burst $http_burst packets } counter drop comment "$COMMENT_TAG HTTP new-connection per-source limit"
+    tcp dport $TARGET_PORT ct state new meter http_conn_per_src { ip saddr limit rate over $HTTP_RATE/second burst $http_burst packets } counter drop comment "$COMMENT_TAG http-new-connection-limit"
 
-    udp dport $TARGET_PORT counter drop comment "$COMMENT_TAG drop UDP to HTTP service port"
+    udp dport $TARGET_PORT counter drop comment "$COMMENT_TAG drop-udp-to-http-port"
   }
 
   chain input {

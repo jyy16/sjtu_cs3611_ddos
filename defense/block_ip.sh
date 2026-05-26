@@ -20,7 +20,11 @@ Safety rules:
   Do not block victim or gateway IPs.
 
 Environment:
+  DEFENSE_BACKEND      iptables or nftables. Default: iptables.
   IPTABLES             iptables binary name or path. Default: iptables.
+  NFT                  nft binary name or path when DEFENSE_BACKEND=nftables.
+  NFT_FAMILY           nftables family when DEFENSE_BACKEND=nftables. Default: inet.
+  NFT_TABLE_NAME       nftables table name. Default: sanitized project tag.
   SUDO                 sudo binary name or path. Default: sudo.
   TARGET_IP            Victim IP. Used to avoid blocking the victim.
   VICTIM_IP            Victim IP alias. Takes the same role as TARGET_IP.
@@ -38,6 +42,34 @@ die() {
 
 is_uint() {
   [[ "$1" =~ ^[0-9]+$ ]]
+}
+
+normalize_backend() {
+  local backend
+  backend="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$backend" in
+    iptables)
+      printf 'iptables\n'
+      ;;
+    nft|nftables)
+      printf 'nftables\n'
+      ;;
+    *)
+      die "DEFENSE_BACKEND must be iptables or nftables: $1"
+      ;;
+  esac
+}
+
+sanitize_identifier() {
+  local ident
+  ident="$(printf '%s' "$1" | sed 's/[^A-Za-z0-9_]/_/g')"
+  [[ -n "$ident" ]] || ident="cs3611_ddos"
+  [[ "$ident" =~ ^[A-Za-z_] ]] || ident="p_${ident}"
+  printf '%s' "$ident"
+}
+
+nft_quote() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 is_ipv4() {
@@ -165,13 +197,116 @@ is_private_or_loopback_ipv4 "$IP" || die "Refusing to block public IP: $IP"
 
 BASE_CHAIN="CS3611_DDOS"
 BLACKLIST_CHAIN="CS3611_DDOS_BL"
+DEFENSE_BACKEND="${DEFENSE_BACKEND:-iptables}"
 IPTABLES_BIN="${IPTABLES:-iptables}"
+NFT_BIN="${NFT:-nft}"
+NFT_FAMILY="${NFT_FAMILY:-inet}"
 SUDO_BIN="${SUDO:-sudo}"
 LOOPBACK_RATE="${LOOPBACK_RATE:-20}"
 DEFENSE_LOG_DIR="${DEFENSE_LOG_DIR:-data/logs}"
 
 is_uint "$LOOPBACK_RATE" || die "LOOPBACK_RATE must be numeric: $LOOPBACK_RATE"
 [[ "$LOOPBACK_RATE" -ge 1 ]] || die "LOOPBACK_RATE must be greater than 0"
+
+record_action() {
+  local action="$1"
+  local ts
+
+  ts="$(date -Iseconds 2>/dev/null || date)"
+  if mkdir -p "$DEFENSE_LOG_DIR" 2>/dev/null; then
+    printf '%s,action=%s,ip=%s,reason=%s,ttl=%s,tag=%s\n' \
+      "$ts" "$action" "$IP" "$REASON" "$TTL" "$PROJECT_TAG" \
+      >>"$DEFENSE_LOG_DIR/defense_blocks.log" 2>/dev/null || true
+  fi
+}
+
+BACKEND="$(normalize_backend "$DEFENSE_BACKEND")"
+
+if [[ "$BACKEND" == "nftables" ]]; then
+  [[ "$NFT_FAMILY" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid nftables family: $NFT_FAMILY"
+  NFT_TABLE="${NFT_TABLE_NAME:-$(sanitize_identifier "$PROJECT_TAG")}"
+  [[ "$NFT_TABLE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "Invalid nftables table name: $NFT_TABLE"
+
+  command -v "$NFT_BIN" >/dev/null 2>&1 || die "nft command not found: $NFT_BIN"
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    NFT_CMD=("$NFT_BIN")
+  else
+    command -v "$SUDO_BIN" >/dev/null 2>&1 || die "not root and sudo command not found"
+    NFT_CMD=("$SUDO_BIN" "$NFT_BIN")
+  fi
+
+  nft_run() {
+    "${NFT_CMD[@]}" "$@"
+  }
+
+  nft_table_exists() {
+    nft_run list table "$NFT_FAMILY" "$NFT_TABLE" >/dev/null 2>&1
+  }
+
+  nft_rule_comment_exists() {
+    local comment="$1"
+    nft_run -a list chain "$NFT_FAMILY" "$NFT_TABLE" ddos_common 2>/dev/null \
+      | grep -F "comment \"$comment\"" >/dev/null 2>&1
+  }
+
+  ensure_nft_baseline() {
+    local script_dir cmd
+
+    if ! nft_table_exists; then
+      script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      cmd=(
+        bash "$script_dir/nftables_rules.sh"
+        --target-port "${TARGET_PORT:-8080}"
+        --syn-rate "${SYN_LIMIT:-50}"
+        --http-rate "${HTTP_LIMIT:-120}"
+        --project-tag "$PROJECT_TAG"
+      )
+      if [[ -n "${NFT_TABLE_NAME:-}" ]]; then
+        cmd+=(--table-name "$NFT_TABLE")
+      fi
+      "${cmd[@]}"
+    fi
+
+    nft_run list set "$NFT_FAMILY" "$NFT_TABLE" blacklist_v4 >/dev/null 2>&1 \
+      || die "nftables blacklist set is missing; rerun defense/iptables_rules.sh with DEFENSE_BACKEND=nftables"
+  }
+
+  add_nft_loopback_limit() {
+    local comment escaped_comment
+
+    comment="$PROJECT_TAG loopback-rate-limit $IP"
+    if nft_rule_comment_exists "$comment"; then
+      return 0
+    fi
+
+    escaped_comment="$(nft_quote "$comment")"
+    printf 'add rule %s %s ddos_common ip saddr %s tcp flags & (fin|syn|rst|ack) == syn limit rate over %s/second burst %s packets counter drop comment "%s"\n' \
+      "$NFT_FAMILY" "$NFT_TABLE" "$IP" "$LOOPBACK_RATE" "$LOOPBACK_RATE" "$escaped_comment" \
+      | nft_run -f -
+  }
+
+  ensure_nft_baseline
+
+  if is_loopback_ipv4 "$IP"; then
+    add_nft_loopback_limit
+    record_action "rate_limit_loopback_nftables"
+    printf '[defense] nftables loopback source rate-limited instead of dropped: ip=%s rate=%s/s reason=%s ttl=%s tag=%s table=%s\n' \
+      "$IP" "$LOOPBACK_RATE" "$REASON" "$TTL" "$PROJECT_TAG" "$NFT_TABLE"
+    exit 0
+  fi
+
+  if is_protected_ip "$IP"; then
+    die "Refusing to block protected IP: $IP"
+  fi
+
+  nft_run delete element "$NFT_FAMILY" "$NFT_TABLE" blacklist_v4 "{ $IP }" >/dev/null 2>&1 || true
+  nft_run add element "$NFT_FAMILY" "$NFT_TABLE" blacklist_v4 "{ $IP timeout ${TTL}s }"
+
+  record_action "drop_private_ip_nftables"
+  printf '[defense] nftables private source blocked: ip=%s reason=%s ttl=%s tag=%s table=%s\n' \
+    "$IP" "$REASON" "$TTL" "$PROJECT_TAG" "$NFT_TABLE"
+  exit 0
+fi
 
 command -v "$IPTABLES_BIN" >/dev/null 2>&1 || die "iptables command not found: $IPTABLES_BIN"
 
@@ -213,18 +348,6 @@ insert_unique() {
 
   if ! iptables_run -C "$chain" "$@" >/dev/null 2>&1; then
     iptables_run -I "$chain" 1 "$@"
-  fi
-}
-
-record_action() {
-  local action="$1"
-  local ts
-
-  ts="$(date -Iseconds 2>/dev/null || date)"
-  if mkdir -p "$DEFENSE_LOG_DIR" 2>/dev/null; then
-    printf '%s,action=%s,ip=%s,reason=%s,ttl=%s,tag=%s\n' \
-      "$ts" "$action" "$IP" "$REASON" "$TTL" "$PROJECT_TAG" \
-      >>"$DEFENSE_LOG_DIR/defense_blocks.log" 2>/dev/null || true
   fi
 }
 

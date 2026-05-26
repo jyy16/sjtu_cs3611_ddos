@@ -16,7 +16,10 @@ Options:
   -h, --help           Show this help.
 
 Environment:
+  DEFENSE_BACKEND      iptables or nftables. Default: iptables.
   IPTABLES             iptables binary name or path. Default: iptables.
+  NFT                  nft binary name or path when DEFENSE_BACKEND=nftables.
+  NFT_TABLE_NAME       nftables table name. Default: sanitized project tag.
   SUDO                 sudo binary name or path. Default: sudo.
 
 Installed rules:
@@ -38,10 +41,27 @@ is_uint() {
   [[ "$1" =~ ^[0-9]+$ ]]
 }
 
+normalize_backend() {
+  local backend
+  backend="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$backend" in
+    iptables)
+      printf 'iptables\n'
+      ;;
+    nft|nftables)
+      printf 'nftables\n'
+      ;;
+    *)
+      die "DEFENSE_BACKEND must be iptables or nftables: $1"
+      ;;
+  esac
+}
+
 TARGET_PORT=""
 SYN_RATE=""
 HTTP_RATE=""
 PROJECT_TAG=""
+DEFENSE_BACKEND="${DEFENSE_BACKEND:-iptables}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -83,6 +103,22 @@ is_uint "$HTTP_RATE" || die "--http-rate must be numeric: $HTTP_RATE"
 [[ "$TARGET_PORT" -ge 1 && "$TARGET_PORT" -le 65535 ]] || die "--target-port out of range: $TARGET_PORT"
 [[ "$SYN_RATE" -ge 1 ]] || die "--syn-rate must be greater than 0"
 [[ "$HTTP_RATE" -ge 1 ]] || die "--http-rate must be greater than 0"
+
+BACKEND="$(normalize_backend "$DEFENSE_BACKEND")"
+if [[ "$BACKEND" == "nftables" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  NFTABLES_CMD=(
+    bash "$SCRIPT_DIR/nftables_rules.sh"
+    --target-port "$TARGET_PORT"
+    --syn-rate "$SYN_RATE"
+    --http-rate "$HTTP_RATE"
+    --project-tag "$PROJECT_TAG"
+  )
+  if [[ -n "${NFT_TABLE_NAME:-}" ]]; then
+    NFTABLES_CMD+=(--table-name "$NFT_TABLE_NAME")
+  fi
+  exec "${NFTABLES_CMD[@]}"
+fi
 
 BASE_CHAIN="CS3611_DDOS"
 BLACKLIST_CHAIN="CS3611_DDOS_BL"

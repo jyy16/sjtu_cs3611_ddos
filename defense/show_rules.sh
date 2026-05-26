@@ -19,7 +19,11 @@ Output sections:
   Raw rule counters for project chains
 
 Environment:
+  DEFENSE_BACKEND      iptables or nftables. Default: iptables.
   IPTABLES             iptables binary name or path. Default: iptables.
+  NFT                  nft binary name or path when DEFENSE_BACKEND=nftables.
+  NFT_FAMILY           nftables family when DEFENSE_BACKEND=nftables. Default: inet.
+  NFT_TABLE_NAME       nftables table name. Default: sanitized project tag.
   SUDO                 sudo binary name or path. Default: sudo.
 EOF
 }
@@ -27,6 +31,30 @@ EOF
 die() {
   printf '[defense][error] %s\n' "$*" >&2
   exit 1
+}
+
+normalize_backend() {
+  local backend
+  backend="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$backend" in
+    iptables)
+      printf 'iptables\n'
+      ;;
+    nft|nftables)
+      printf 'nftables\n'
+      ;;
+    *)
+      die "DEFENSE_BACKEND must be iptables or nftables: $1"
+      ;;
+  esac
+}
+
+sanitize_identifier() {
+  local ident
+  ident="$(printf '%s' "$1" | sed 's/[^A-Za-z0-9_]/_/g')"
+  [[ -n "$ident" ]] || ident="cs3611_ddos"
+  [[ "$ident" =~ ^[A-Za-z_] ]] || ident="p_${ident}"
+  printf '%s' "$ident"
 }
 
 PROJECT_TAG=""
@@ -55,8 +83,95 @@ fi
 
 BASE_CHAIN="CS3611_DDOS"
 BLACKLIST_CHAIN="CS3611_DDOS_BL"
+DEFENSE_BACKEND="${DEFENSE_BACKEND:-iptables}"
 IPTABLES_BIN="${IPTABLES:-iptables}"
+NFT_BIN="${NFT:-nft}"
+NFT_FAMILY="${NFT_FAMILY:-inet}"
 SUDO_BIN="${SUDO:-sudo}"
+
+section() {
+  printf '\n========== %s ==========\n' "$1"
+}
+
+BACKEND="$(normalize_backend "$DEFENSE_BACKEND")"
+if [[ "$BACKEND" == "nftables" ]]; then
+  [[ "$NFT_FAMILY" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid nftables family: $NFT_FAMILY"
+  NFT_TABLE="${NFT_TABLE_NAME:-$(sanitize_identifier "$PROJECT_TAG")}"
+  [[ "$NFT_TABLE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "Invalid nftables table name: $NFT_TABLE"
+
+  command -v "$NFT_BIN" >/dev/null 2>&1 || die "nft command not found: $NFT_BIN"
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    NFT_CMD=("$NFT_BIN")
+  else
+    command -v "$SUDO_BIN" >/dev/null 2>&1 || die "not root and sudo command not found"
+    NFT_CMD=("$SUDO_BIN" "$NFT_BIN")
+  fi
+
+  nft_run() {
+    "${NFT_CMD[@]}" "$@"
+  }
+
+  print_nft_set() {
+    if ! nft_run list set "$NFT_FAMILY" "$NFT_TABLE" blacklist_v4 2>/dev/null; then
+      printf '  <nftables set %s %s blacklist_v4 not installed>\n' "$NFT_FAMILY" "$NFT_TABLE"
+    fi
+  }
+
+  print_nft_matching_rules() {
+    local output matched line pattern
+
+    if ! output="$(nft_run -a list chain "$NFT_FAMILY" "$NFT_TABLE" ddos_common 2>/dev/null)"; then
+      printf '  <nftables chain %s %s ddos_common not installed>\n' "$NFT_FAMILY" "$NFT_TABLE"
+      return
+    fi
+
+    matched=0
+    while IFS= read -r line; do
+      [[ "$line" == *"$PROJECT_TAG"* ]] || continue
+      for pattern in "$@"; do
+        if [[ "$line" == *"$pattern"* ]]; then
+          printf '  %s\n' "$line"
+          matched=1
+          break
+        fi
+      done
+    done <<<"$output"
+
+    if [[ "$matched" -eq 0 ]]; then
+      printf '  <none>\n'
+    fi
+  }
+
+  section "Current Blacklist IPs"
+  printf 'Backend: nftables\n'
+  printf 'Project tag: %s\n' "$PROJECT_TAG"
+  print_nft_set
+
+  section "Current Rate-Limit Rules"
+  printf 'Backend: nftables\n'
+  printf 'Project tag: %s\n' "$PROJECT_TAG"
+  print_nft_matching_rules \
+    "syn-rate-limit" \
+    "http-new-connection-limit" \
+    "loopback-rate-limit"
+
+  section "Current Traffic-Cleaning Rules"
+  printf 'Backend: nftables\n'
+  printf 'Project tag: %s\n' "$PROJECT_TAG"
+  print_nft_matching_rules \
+    "drop-invalid" \
+    "drop-null-flags" \
+    "drop-xmas-flags" \
+    "drop-syn-fin" \
+    "drop-syn-rst" \
+    "drop-udp-to-http-port"
+
+  section "Raw Counters: nftables $NFT_FAMILY $NFT_TABLE"
+  if ! nft_run -a list table "$NFT_FAMILY" "$NFT_TABLE"; then
+    printf '  <nftables table %s %s not installed>\n' "$NFT_FAMILY" "$NFT_TABLE"
+  fi
+  exit 0
+fi
 
 command -v "$IPTABLES_BIN" >/dev/null 2>&1 || die "iptables command not found: $IPTABLES_BIN"
 
@@ -83,10 +198,6 @@ chain_table() {
   fi
 
   iptables_run -L "$chain" -n -v -x --line-numbers
-}
-
-section() {
-  printf '\n========== %s ==========\n' "$1"
 }
 
 print_matching_rules() {

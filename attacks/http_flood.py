@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--target-url", required=True)
     parser.add_argument("--duration", type=int, required=True)
     parser.add_argument("--rate", type=int, required=True)
+    parser.add_argument("--method", choices=["GET", "POST"], default="GET")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -39,7 +40,7 @@ def main():
         os.makedirs(log_dir, exist_ok=True)
 
     with open(args.output, "w") as f:
-        f.write("timestamp,target_url,status_code,error\n")
+        f.write("timestamp,target_url,method,status_code,error\n")
 
     start_time = time.time()
     interval = 1.0 / args.rate
@@ -48,15 +49,19 @@ def main():
         while time.time() < start_time + args.duration:
             try:
                 ts = datetime.now().isoformat()
-                resp = requests.get(args.target_url, timeout=1)
+                if args.method == "POST":
+                    resp = requests.post(args.target_url, data={"demo": "cs3611"}, timeout=1)
+                else:
+                    resp = requests.get(args.target_url, timeout=1)
                 code = resp.status_code
                 err = ""
             except Exception as e:
+                ts = datetime.now().isoformat()
                 code = 0
                 err = str(e)
 
             with open(args.output, "a") as f:
-                f.write(f"{ts},{args.target_url},{code},\"{err}\"\n")
+                f.write(f"{ts},{args.target_url},{args.method},{code},\"{err}\"\n")
             time.sleep(interval)
 
     for _ in range(10):

