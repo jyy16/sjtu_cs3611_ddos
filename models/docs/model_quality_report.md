@@ -2,36 +2,43 @@
 
 ## Conclusion
 
-The model module is now strong for the Project 9 rubric, but it should not be
-claimed as real academic state of the art unless it is trained and evaluated on
-large, diverse, real captured PCAP datasets with an external holdout set.
+The model module satisfies the Project 9 model-development rubric for the
+updated attack/defense integration: it extracts statistical features from the
+new PCAP captures, trains a checkpointed MLP classifier for `normal` vs
+`attack`, emits defense-actionable `decision.json`, and refreshes the
+unsupervised anomaly-detection reports with KMeans and AutoEncoder.
 
-For the course requirement, it goes beyond the stated baseline:
+This is a strong course-demo pipeline rather than a claim of academic
+state-of-the-art on public DDoS benchmarks. The current PCAP normal set is small,
+so report the metrics as Project 9 demo validation results.
 
-- Extracts statistical traffic features from PCAP/PCAPNG.
-- Trains a PyTorch MLP classifier for `normal` vs `attack`.
-- Produces defense-ready `decision.json` with source IP, confidence, action,
-  attack type, and reason.
-- Runs unsupervised KMeans anomaly separation for unknown high-rate traffic.
-- Runs a checkpointed deep AutoEncoder anomaly detector using reconstruction
-  error on traffic-feature vectors.
-- Runs `models/sota_fusion.py`, a SOTA-inspired fusion pipeline combining MLP,
-  AutoEncoder, and KMeans signals into one report and decision list.
-- Records validation metrics, ROC-AUC, confusion matrix, training history,
-  best validation threshold, early stopping, and checkpoints.
+## Implemented Capabilities
 
-## Checkpoint Strategy
+- PCAP/PCAPNG feature extraction through `features/extract_features.py`.
+- Required feature schema in `features/feature_schema.md`.
+- PyTorch MLP classifier through `models/train_mlp.py`.
+- Defense-ready inference through `models/infer.py`.
+- Inference filters decisions to sources the defense module can act on:
+  `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`.
+- KMeans anomaly detection for high-rate traffic separation.
+- AutoEncoder anomaly detection trained on normal traffic reconstruction error.
+- SOTA-inspired fusion report combining MLP, AutoEncoder, and KMeans signals.
+- Checkpointing for neural models: latest, best, and periodic epoch checkpoints.
 
-Training supports:
+## Updated PCAP Training Data
 
-- `models/saved/checkpoints/latest.pth`: most recent epoch.
-- `models/saved/checkpoints/best_model.pth`: best validation F1 checkpoint.
-- `models/saved/checkpoints/epoch_NNN.pth`: periodic checkpoint every
-  `--checkpoint-every` epochs.
-- Final `models/saved/model.pth`: best validation checkpoint, not simply the
-  last epoch.
+Generated from the updated attack module captures:
 
-Recommended command:
+- Normal PCAP: `attacks/PCAP/normal_traffic.pcap`
+- Attack PCAP: `attacks/PCAP/attack_traffic.pcap`
+- Normal features: `data/features/demo/normal_traffic.csv` with 21 rows
+- Attack features: `data/features/demo/attack_before_defense.csv` with 1680 rows
+- Training CSV: `data/features/train.csv` with 1701 rows
+- Target IP filter: `127.0.0.1`
+
+## MLP Classifier Results
+
+Command used:
 
 ```bash
 python models/train_mlp.py \
@@ -40,57 +47,83 @@ python models/train_mlp.py \
   --metrics-out data/logs/demo/train_metrics.json \
   --checkpoint-dir models/saved/checkpoints \
   --checkpoint-every 10 \
-  --epochs 120 \
-  --seed 42
+  --epochs 160 \
+  --patience 40 \
+  --seed 42 \
+  --hidden-units 64 \
+  --dropout 0.1 \
+  --weight-decay 0.0001 \
+  --lr 0.005
 ```
 
-## Current Demo Evidence
+Current validation metrics from `data/logs/demo/train_metrics.json`:
 
-The synthetic demo dataset is intentionally separable. It is useful for showing
-the pipeline works, not for proving real-world generalization.
+- Accuracy: 1.0
+- Precision: 1.0
+- Recall: 1.0
+- F1: 1.0
+- ROC-AUC: 1.0
+- Confusion matrix: TN=5, FP=0, FN=0, TP=421
+- Best epoch: 35
+- Epochs run: 75
+- Best threshold: 0.5
 
-Current `data/features/demo/synthetic_train.csv` results:
+Checkpoint outputs:
 
-- MLP: accuracy 1.0, F1 1.0, ROC-AUC 1.0.
-- AutoEncoder: precision 0.9804, recall 1.0, F1 0.9901, ROC-AUC 1.0.
-- KMeans: precision 1.0, recall 1.0, cluster purity 1.0, silhouette 0.9513.
-- Fusion: accuracy 1.0, precision 1.0, recall 1.0, F1 1.0, ROC-AUC 1.0.
-
-Current refreshed demo outputs:
-
-- `data/logs/demo/train_metrics.json`
-- `data/logs/demo/decision.json`
-- `data/logs/demo/anomaly_report.json`
-- `data/logs/demo/autoencoder_report.json`
-- `data/logs/demo/sota_report.json`
 - `models/saved/model.pth`
-- `models/saved/autoencoder.pth`
-- `models/saved/sota/`
-- `models/saved/checkpoints/`
+- `models/saved/checkpoints/best_model.pth`
+- `models/saved/checkpoints/latest.pth`
+- `models/saved/checkpoints/epoch_010.pth` and later periodic checkpoints
 
-Recommended SOTA-inspired fusion command:
+## Defense Decision Output
+
+Command used:
+
+```bash
+python models/infer.py \
+  --input data/features/demo/attack_before_defense.csv \
+  --model models/saved/model.pth \
+  --output data/logs/demo/decision.json \
+  --threshold 0.80
+```
+
+Current `decision.json` contains 10 attack decisions after filtering to
+sources accepted by `defense/block_ip.sh`. This avoids sending public spoofed IPs
+to the defense module, which intentionally refuses to block public addresses.
+
+## Unsupervised And Fusion Results
+
+Command used:
 
 ```bash
 python models/sota_fusion.py \
   --input data/features/train.csv \
   --output data/logs/demo/sota_report.json \
   --model-dir models/saved/sota \
-  --epochs 120 \
-  --contamination 0.01 \
+  --epochs 100 \
+  --contamination 0.05 \
   --seed 42
 ```
 
-## Remaining Work For True SOTA Claims
+Current fusion metrics from `data/logs/demo/sota_report.json`:
 
-To make a credible state-of-the-art claim, add:
+- Fusion accuracy: 0.9994
+- Fusion precision: 0.9994
+- Fusion recall: 1.0
+- Fusion F1: 0.9997
+- Fusion ROC-AUC: 1.0
+- Fusion threshold: 0.17
 
-- Real PCAP captures from normal traffic, SYN flood, HTTP flood, UDP reflection,
-  and mixed attacks.
-- A strict train/validation/test split by capture session, not random rows only.
-- Baselines such as Logistic Regression, Random Forest, KMeans, and MLP.
-- Ablation study for feature groups such as PPS, byte rate, SYN/ACK ratio, and
-  entropy.
-- Robustness checks with unseen attack rates and unseen source IP ranges.
+Component metrics:
 
-Until then, describe this as a reproducible Project 9 intelligent classifier
-and anomaly detector with checkpointed training and validation reporting.
+- MLP: accuracy 1.0, precision 1.0, recall 1.0, F1 1.0, ROC-AUC 1.0
+- AutoEncoder: precision 0.9994, recall 1.0, F1 0.9997, ROC-AUC 1.0
+- KMeans: precision 1.0, recall 0.0119, cluster purity 0.9877,
+  silhouette 0.8883
+
+## Remaining Caveat
+
+The updated attack capture is much larger than the normal capture. For a more
+credible external SOTA claim, collect more normal PCAP sessions and evaluate on a
+session-level holdout set. For Project 9, the current artifacts are reproducible,
+checkpointed, and integrated with the required demo commands.
