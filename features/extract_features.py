@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import math
 import struct
+import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -12,6 +13,11 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 import pandas as pd
+
+if __package__ is None or __package__ == "":
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from storage.redis_store import StorageError, persist_feature_frame
 
 
 FEATURE_COLUMNS = [
@@ -30,6 +36,11 @@ FEATURE_COLUMNS = [
     "label",
     "attack_type",
 ]
+
+LINKTYPE_ETHERNET = 1
+LINKTYPE_RAW_IP = 101
+LINKTYPE_LINUX_SLL = 113
+LINKTYPE_LINUX_SLL2 = 276
 
 
 @dataclass(frozen=True)
@@ -55,19 +66,8 @@ def _shannon_entropy(values: Iterable[str]) -> float:
     return float(-sum((count / total) * math.log2(count / total) for count in counts.values()))
 
 
-def _parse_ethernet_ipv4(payload: bytes, timestamp: float, linktype: int = 1) -> PacketRecord | None:
-    if linktype != 1 or len(payload) < 14:
-        return None
-
-    offset = 14
-    ethertype = struct.unpack("!H", payload[12:14])[0]
-    if ethertype in {0x8100, 0x88A8}:
-        if len(payload) < 18:
-            return None
-        ethertype = struct.unpack("!H", payload[16:18])[0]
-        offset = 18
-
-    if ethertype != 0x0800 or len(payload) < offset + 20:
+def _parse_ipv4_at_offset(payload: bytes, timestamp: float, offset: int) -> PacketRecord | None:
+    if len(payload) < offset + 20:
         return None
 
     version_ihl = payload[offset]
@@ -98,6 +98,43 @@ def _parse_ethernet_ipv4(payload: bytes, timestamp: float, linktype: int = 1) ->
         syn=syn,
         ack=ack,
     )
+
+
+def _parse_packet_record(payload: bytes, timestamp: float, linktype: int = LINKTYPE_ETHERNET) -> PacketRecord | None:
+    if linktype == LINKTYPE_ETHERNET:
+        if len(payload) < 14:
+            return None
+        offset = 14
+        ethertype = struct.unpack("!H", payload[12:14])[0]
+        if ethertype in {0x8100, 0x88A8}:
+            if len(payload) < 18:
+                return None
+            ethertype = struct.unpack("!H", payload[16:18])[0]
+            offset = 18
+        if ethertype != 0x0800:
+            return None
+        return _parse_ipv4_at_offset(payload, timestamp, offset)
+
+    if linktype == LINKTYPE_LINUX_SLL:
+        if len(payload) < 16:
+            return None
+        protocol = struct.unpack("!H", payload[14:16])[0]
+        if protocol != 0x0800:
+            return None
+        return _parse_ipv4_at_offset(payload, timestamp, 16)
+
+    if linktype == LINKTYPE_LINUX_SLL2:
+        if len(payload) < 20:
+            return None
+        protocol = struct.unpack("!H", payload[0:2])[0]
+        if protocol != 0x0800:
+            return None
+        return _parse_ipv4_at_offset(payload, timestamp, 20)
+
+    if linktype == LINKTYPE_RAW_IP:
+        return _parse_ipv4_at_offset(payload, timestamp, 0)
+
+    return None
 
 
 def _read_pcap(path: Path) -> Iterator[tuple[float, bytes, int]]:
@@ -192,7 +229,7 @@ def read_packet_records(path: str | Path) -> list[PacketRecord]:
 
     records: list[PacketRecord] = []
     for timestamp, payload, linktype in raw_packets:
-        record = _parse_ethernet_ipv4(payload, timestamp, linktype=linktype)
+        record = _parse_packet_record(payload, timestamp, linktype=linktype)
         if record is not None:
             records.append(record)
     return records
@@ -266,6 +303,17 @@ def extract_pcap_to_csv(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output, index=False)
+    storage_info = persist_feature_frame(
+        frame,
+        output_path=output,
+        input_path=input_path,
+        label=label,
+        attack_type=attack_type,
+        target_ip=target_ip,
+        window_size=window_size,
+    )
+    if storage_info is not None:
+        frame.attrs["storage"] = storage_info
     return frame
 
 
@@ -282,15 +330,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    frame = extract_pcap_to_csv(
-        input_path=args.input,
-        output_path=args.output,
-        label=args.label,
-        attack_type=args.attack_type,
-        target_ip=args.target_ip,
-        window_size=args.window_size,
-    )
+    try:
+        frame = extract_pcap_to_csv(
+            input_path=args.input,
+            output_path=args.output,
+            label=args.label,
+            attack_type=args.attack_type,
+            target_ip=args.target_ip,
+            window_size=args.window_size,
+        )
+    except StorageError as exc:
+        print(f"[storage][error] {exc}", flush=True)
+        return 1
     print(f"Wrote {len(frame)} feature rows to {args.output}")
+    storage_info = frame.attrs.get("storage")
+    if storage_info:
+        print(
+            "Stored feature rows in Redis: "
+            f"run={storage_info['run_id']} artifact={storage_info['artifact']} key={storage_info['key']}"
+        )
     return 0
 
 

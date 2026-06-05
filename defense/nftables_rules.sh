@@ -122,7 +122,11 @@ table $FAMILY $TABLE_NAME {
     tcp flags & (syn|rst) == (syn|rst) counter drop comment "$COMMENT_TAG drop-syn-rst"
     tcp flags & (fin|psh|urg) == (fin|psh|urg) counter drop comment "$COMMENT_TAG drop-xmas-flags"
 
+    ip saddr 127.0.0.0/8 tcp dport $TARGET_PORT tcp flags & (fin|syn|rst|ack) == syn limit rate over $SYN_RATE/second burst $syn_burst packets counter drop comment "$COMMENT_TAG loopback-syn-aggregate-limit"
+
     tcp dport $TARGET_PORT tcp flags & (fin|syn|rst|ack) == syn meter syn_per_src { ip saddr limit rate over $SYN_RATE/second burst $syn_burst packets } counter drop comment "$COMMENT_TAG syn-rate-limit"
+
+    ip saddr 127.0.0.0/8 tcp dport $TARGET_PORT ct state new limit rate over $HTTP_RATE/second burst $http_burst packets counter drop comment "$COMMENT_TAG loopback-http-aggregate-limit"
 
     tcp dport $TARGET_PORT ct state new meter http_conn_per_src { ip saddr limit rate over $HTTP_RATE/second burst $http_burst packets } counter drop comment "$COMMENT_TAG http-new-connection-limit"
 

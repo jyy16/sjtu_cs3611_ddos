@@ -17,6 +17,7 @@ if __package__ is None or __package__ == "":
 
 from models.feature_utils import feature_matrix, load_feature_csv, scaler_from_state, source_attack_type
 from models.train_mlp import TrafficMLP
+from storage.redis_store import StorageError, persist_decision_report
 
 PROJECT_TIMEZONE = timezone(timedelta(hours=8))
 
@@ -108,6 +109,12 @@ def run_inference(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    persist_decision_report(
+        result,
+        output_path=output,
+        input_path=input_path,
+        model_path=model_path,
+    )
     return result
 
 
@@ -127,16 +134,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = run_inference(
-        input_path=args.input,
-        model_path=args.model,
-        output_path=args.output,
-        threshold=args.threshold,
-    )
+    try:
+        result = run_inference(
+            input_path=args.input,
+            model_path=args.model,
+            output_path=args.output,
+            threshold=args.threshold,
+        )
+    except StorageError as exc:
+        print(f"[storage][error] {exc}", flush=True)
+        return 1
     print(json.dumps(result, indent=2))
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

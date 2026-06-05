@@ -7,8 +7,14 @@ import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+if __package__ is None or __package__ == "":
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from storage.redis_store import StorageError, persist_defense_actions
 
 
 DEFAULT_BLOCK_TTL = 300
@@ -198,10 +204,16 @@ def main() -> int:
     decisions = payload["decisions"]
     actions = iter_block_actions(decisions, args.threshold)
     if not actions:
+        try:
+            persist_defense_actions([], decision_path=decision_path)
+        except StorageError as exc:
+            error(str(exc))
+            return 1
         log("no attack decisions met the threshold; no defense action applied")
         return 0
 
     failures = 0
+    action_records: list[dict[str, Any]] = []
     for src_ip, reason, confidence in actions:
         log(
             "applying defense: "
@@ -214,9 +226,27 @@ def main() -> int:
             ttl=args.ttl,
             project_tag=args.project_tag,
         )
+        action_records.append(
+            {
+                "src_ip": src_ip,
+                "reason": reason,
+                "confidence": round(confidence, 6),
+                "ttl": args.ttl,
+                "project_tag": args.project_tag,
+                "returncode": returncode,
+                "status": "applied" if returncode == 0 else "failed",
+                "applied_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         if returncode != 0:
             failures += 1
             error(f"block script failed for src_ip={src_ip} with exit code {returncode}")
+
+    try:
+        persist_defense_actions(action_records, decision_path=decision_path)
+    except StorageError as exc:
+        error(str(exc))
+        return 1
 
     if failures:
         error(f"{failures} defense action(s) failed")
