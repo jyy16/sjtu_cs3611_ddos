@@ -272,7 +272,19 @@ if [[ "$BACKEND" == "nftables" ]]; then
   }
 
   add_nft_loopback_limit() {
-    local comment escaped_comment
+    local comment aggregate_comment escaped_comment escaped_aggregate_comment target_port_for_limit
+
+    target_port_for_limit="${TARGET_PORT:-8080}"
+    is_uint "$target_port_for_limit" || die "TARGET_PORT must be numeric when set: $target_port_for_limit"
+    [[ "$target_port_for_limit" -ge 1 && "$target_port_for_limit" -le 65535 ]] || die "TARGET_PORT out of range: $target_port_for_limit"
+
+    aggregate_comment="$PROJECT_TAG loopback-http-aggregate-limit"
+    if ! nft_rule_comment_exists "$aggregate_comment"; then
+      escaped_aggregate_comment="$(nft_quote "$aggregate_comment")"
+      printf 'add rule %s %s ddos_common ip saddr 127.0.0.0/8 tcp dport %s ct state new limit rate over %s/second burst %s packets counter drop comment "%s"\n' \
+        "$NFT_FAMILY" "$NFT_TABLE" "$target_port_for_limit" "$LOOPBACK_RATE" "$LOOPBACK_RATE" "$escaped_aggregate_comment" \
+        | nft_run -f -
+    fi
 
     comment="$PROJECT_TAG loopback-rate-limit $IP"
     if nft_rule_comment_exists "$comment"; then
@@ -364,6 +376,23 @@ append_unique "$BASE_CHAIN" \
 
 if is_loopback_ipv4 "$IP"; then
   HASH_IP="${IP//./_}"
+  TARGET_PORT_FOR_LIMIT="${TARGET_PORT:-8080}"
+  is_uint "$TARGET_PORT_FOR_LIMIT" || die "TARGET_PORT must be numeric when set: $TARGET_PORT_FOR_LIMIT"
+  [[ "$TARGET_PORT_FOR_LIMIT" -ge 1 && "$TARGET_PORT_FOR_LIMIT" -le 65535 ]] || die "TARGET_PORT out of range: $TARGET_PORT_FOR_LIMIT"
+
+  append_unique "$BASE_CHAIN" \
+    -s 127.0.0.0/8 \
+    -p tcp \
+    --dport "$TARGET_PORT_FOR_LIMIT" \
+    -m conntrack --ctstate NEW \
+    -m hashlimit \
+    --hashlimit-name "cs3611_lb_block" \
+    --hashlimit-mode dstip \
+    --hashlimit-above "${LOOPBACK_RATE}/second" \
+    --hashlimit-burst "$LOOPBACK_RATE" \
+    -m comment --comment "$PROJECT_TAG loopback-http-aggregate-limit" \
+    -j DROP
+
   append_unique "$BASE_CHAIN" \
     -s "$IP" \
     -p tcp \

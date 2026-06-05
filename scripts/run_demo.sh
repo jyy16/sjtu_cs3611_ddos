@@ -41,10 +41,16 @@ TARGET_SITE_DIR="${TARGET_SITE_DIR:-demo_site}"
 TRAIN="${TRAIN:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 CHECK_ONLY=0
+STORAGE_BACKEND="${STORAGE_BACKEND:-none}"
+REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379/0}"
+STORAGE_KEY_PREFIX="${STORAGE_KEY_PREFIX:-cs3611:ddos}"
+STORAGE_FAIL_OPEN="${STORAGE_FAIL_OPEN:-0}"
 
 PCAP_DIR="${PCAP_DIR:-data/pcap/${RUN_ID}}"
 FEATURE_DIR="${FEATURE_DIR:-data/features/${RUN_ID}}"
 LOG_DIR="${LOG_DIR:-data/logs/${RUN_ID}}"
+
+export RUN_ID STORAGE_BACKEND REDIS_URL STORAGE_KEY_PREFIX STORAGE_FAIL_OPEN
 
 TCPDUMP_PID=""
 TARGET_PID=""
@@ -110,6 +116,28 @@ is_private_ipv4() {
   return 1
 }
 
+storage_is_enabled() {
+  case "$(printf '%s' "$STORAGE_BACKEND" | tr '[:upper:]' '[:lower:]')" in
+    ""|none|off|false|0|file|files|disabled)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+storage_fail_open_enabled() {
+  case "$(printf '%s' "$STORAGE_FAIL_OPEN" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 validate_safety() {
   [[ "$TARGET_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "TARGET_IP must be an IPv4 address: $TARGET_IP"
   is_private_ipv4 "$TARGET_IP" || die "Refusing to run against public TARGET_IP=$TARGET_IP"
@@ -161,6 +189,26 @@ preflight() {
     need_file "$MODEL_PATH"
   fi
 
+  if storage_is_enabled; then
+    if [[ "$(printf '%s' "$STORAGE_BACKEND" | tr '[:upper:]' '[:lower:]')" != "redis" ]]; then
+      MISSING_CMDS+=("supported storage backend: redis")
+    elif ! "$PYTHON" - <<'PY'
+from storage.redis_store import StorageError, _redis_client
+
+try:
+    _redis_client()
+except StorageError as exc:
+    raise SystemExit(f"[storage][error] {exc}")
+PY
+    then
+      if storage_fail_open_enabled; then
+        log "Redis storage check failed, continuing because STORAGE_FAIL_OPEN=1"
+      else
+        MISSING_CMDS+=("redis storage at ${REDIS_URL}")
+      fi
+    fi
+  fi
+
   if [[ ${#MISSING_CMDS[@]} -gt 0 ]]; then
     printf 'Missing commands:\n' >&2
     printf '  %s\n' "${MISSING_CMDS[@]}" >&2
@@ -185,16 +233,25 @@ start_target_server() {
   fi
 
   phase "Start Victim HTTP Service"
-  quote_cmd "$PYTHON" -m http.server "$TARGET_PORT" --bind "$TARGET_IP" --directory "$TARGET_SITE_DIR"
-
   if [[ "$DRY_RUN" == "1" ]]; then
+    quote_cmd "$PYTHON" -m http.server "$TARGET_PORT" --bind "$TARGET_IP" --directory "$TARGET_SITE_DIR"
     return
   fi
+
+  if curl -fsS --max-time 2 "$TARGET_URL" >/dev/null 2>&1; then
+    log "Target URL is already reachable; reusing existing service at $TARGET_URL"
+    return
+  fi
+
+  quote_cmd "$PYTHON" -m http.server "$TARGET_PORT" --bind "$TARGET_IP" --directory "$TARGET_SITE_DIR"
 
   "$PYTHON" -m http.server "$TARGET_PORT" --bind "$TARGET_IP" --directory "$TARGET_SITE_DIR" \
     >"$LOG_DIR/target_server.log" 2>&1 &
   TARGET_PID="$!"
   sleep 1
+  if ! kill -0 "$TARGET_PID" >/dev/null 2>&1; then
+    die "Failed to start victim HTTP service on ${TARGET_IP}:${TARGET_PORT}; see $LOG_DIR/target_server.log"
+  fi
 }
 
 check_target_url() {
@@ -404,10 +461,14 @@ run_cmd "$PYTHON" features/extract_features.py \
   --attack-type mixed_attack_after_defense \
   --target-ip "$TARGET_IP" \
   --window-size "$FEATURE_WINDOW"
+run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
 
 phase "Demo Outputs"
 log "PCAP files:      $PCAP_DIR"
 log "Feature CSVs:    $FEATURE_DIR"
 log "Logs/decisions:  $LOG_DIR"
 log "Decision JSON:   $DECISION_JSON"
+if storage_is_enabled; then
+  log "Redis storage:   ${REDIS_URL} (prefix=${STORAGE_KEY_PREFIX}, run=${RUN_ID})"
+fi
 log "To clean rules:  bash defense/unblock_all.sh --project-tag $PROJECT_TAG"

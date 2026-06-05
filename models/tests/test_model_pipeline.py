@@ -115,6 +115,7 @@ def test_inference_outputs_block_decision_for_attack_source(tmp_path):
     assert decision_path.exists()
     saved = json.loads(decision_path.read_text(encoding="utf-8"))
     assert saved == result
+    assert saved["generated_at"].endswith("+08:00")
     assert saved["threshold"] == 0.8
     assert saved["decisions"][0]["src_ip"] == "10.0.1.99"
     assert saved["decisions"][0]["label"] == "attack"
@@ -174,3 +175,55 @@ def test_inference_can_use_saved_decision_threshold(tmp_path):
     )
 
     assert result["threshold"] == metrics["best_threshold"]
+
+
+def test_inference_skips_public_sources_that_defense_refuses(tmp_path):
+    train_csv = tmp_path / "train.csv"
+    model_path = tmp_path / "model.pth"
+    metrics_path = tmp_path / "metrics.json"
+    _make_feature_frame().to_csv(train_csv, index=False)
+    train_from_csv(train_csv, model_path, metrics_path, epochs=35, seed=31)
+
+    infer_frame = pd.DataFrame(
+        [
+            {
+                "timestamp": "2026-05-22T12:10:00+08:00",
+                "src_ip": "8.8.8.8",
+                "dst_ip": "127.0.0.1",
+                "protocol": "TCP",
+                "pps": 220.0,
+                "bps": 95000.0,
+                "avg_pkt_size": 58.0,
+                "syn_count": 210.0,
+                "ack_count": 0.0,
+                "syn_ack_ratio": 210.0,
+                "unique_src_ips": 30,
+                "ip_entropy": 4.8,
+                "label": "attack",
+                "attack_type": "mixed_attack",
+            },
+            {
+                "timestamp": "2026-05-22T12:10:01+08:00",
+                "src_ip": "10.0.0.9",
+                "dst_ip": "127.0.0.1",
+                "protocol": "TCP",
+                "pps": 230.0,
+                "bps": 99000.0,
+                "avg_pkt_size": 58.0,
+                "syn_count": 220.0,
+                "ack_count": 0.0,
+                "syn_ack_ratio": 220.0,
+                "unique_src_ips": 30,
+                "ip_entropy": 4.8,
+                "label": "attack",
+                "attack_type": "mixed_attack",
+            },
+        ]
+    )
+    infer_csv = tmp_path / "infer.csv"
+    infer_frame.to_csv(infer_csv, index=False)
+    decision_path = tmp_path / "decision.json"
+
+    result = run_inference(infer_csv, model_path, decision_path, threshold=0.80)
+
+    assert [decision["src_ip"] for decision in result["decisions"]] == ["10.0.0.9"]

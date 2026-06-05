@@ -126,6 +126,8 @@ IPTABLES_BIN="${IPTABLES:-iptables}"
 SUDO_BIN="${SUDO:-sudo}"
 SYN_HASHLIMIT_NAME="cs3611_ddos_syn"
 HTTP_HASHLIMIT_NAME="cs3611_ddos_http"
+LOOPBACK_SYN_HASHLIMIT_NAME="cs3611_lb_syn"
+LOOPBACK_HTTP_HASHLIMIT_NAME="cs3611_lb_http"
 
 command -v "$IPTABLES_BIN" >/dev/null 2>&1 || die "iptables command not found: $IPTABLES_BIN"
 
@@ -207,6 +209,17 @@ append_unique "$BASE_CHAIN" \
   -j DROP
 
 append_unique "$BASE_CHAIN" \
+  -s 127.0.0.0/8 \
+  -p tcp --dport "$TARGET_PORT" --syn \
+  -m hashlimit \
+  --hashlimit-name "$LOOPBACK_SYN_HASHLIMIT_NAME" \
+  --hashlimit-mode dstip \
+  --hashlimit-above "${SYN_RATE}/second" \
+  --hashlimit-burst "$SYN_RATE" \
+  -m comment --comment "$PROJECT_TAG loopback-syn-aggregate-limit" \
+  -j DROP
+
+append_unique "$BASE_CHAIN" \
   -p tcp --dport "$TARGET_PORT" --syn \
   -m hashlimit \
   --hashlimit-name "$SYN_HASHLIMIT_NAME" \
@@ -214,6 +227,18 @@ append_unique "$BASE_CHAIN" \
   --hashlimit-above "${SYN_RATE}/second" \
   --hashlimit-burst "$SYN_RATE" \
   -m comment --comment "$PROJECT_TAG syn-rate-limit" \
+  -j DROP
+
+append_unique "$BASE_CHAIN" \
+  -s 127.0.0.0/8 \
+  -p tcp --dport "$TARGET_PORT" \
+  -m conntrack --ctstate NEW \
+  -m hashlimit \
+  --hashlimit-name "$LOOPBACK_HTTP_HASHLIMIT_NAME" \
+  --hashlimit-mode dstip \
+  --hashlimit-above "${HTTP_RATE}/second" \
+  --hashlimit-burst "$HTTP_RATE" \
+  -m comment --comment "$PROJECT_TAG loopback-http-aggregate-limit" \
   -j DROP
 
 append_unique "$BASE_CHAIN" \
@@ -225,6 +250,11 @@ append_unique "$BASE_CHAIN" \
   --hashlimit-above "${HTTP_RATE}/second" \
   --hashlimit-burst "$HTTP_RATE" \
   -m comment --comment "$PROJECT_TAG http-new-connection-limit" \
+  -j DROP
+
+append_unique "$BASE_CHAIN" \
+  -p udp --dport "$TARGET_PORT" \
+  -m comment --comment "$PROJECT_TAG drop-udp-to-http-port" \
   -j DROP
 
 printf '[defense] baseline iptables rules installed idempotently: chain=%s blacklist_chain=%s port=%s syn_rate=%s/s http_rate=%s/s tag=%s\n' \

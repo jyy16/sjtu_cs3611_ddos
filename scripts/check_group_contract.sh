@@ -4,6 +4,17 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+PYTHON_OVERRIDE="${PYTHON:-}"
+ENV_FILE="${ENV_FILE:-scripts/demo.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+if [[ -n "$PYTHON_OVERRIDE" ]]; then
+  PYTHON="$PYTHON_OVERRIDE"
+fi
 PYTHON="${PYTHON:-python3}"
 GROUP="${1:-}"
 

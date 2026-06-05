@@ -153,7 +153,9 @@ if [[ "$BACKEND" == "nftables" ]]; then
   print_nft_matching_rules \
     "syn-rate-limit" \
     "http-new-connection-limit" \
-    "loopback-rate-limit"
+    "loopback-rate-limit" \
+    "loopback-syn-aggregate-limit" \
+    "loopback-http-aggregate-limit"
 
   section "Current Traffic-Cleaning Rules"
   printf 'Backend: nftables\n'
@@ -246,7 +248,9 @@ printf 'Counters show how many packets were dropped by each limit rule.\n'
 print_matching_rules "$BASE_CHAIN" \
   "syn-rate-limit" \
   "http-new-connection-limit" \
-  "loopback-rate-limit"
+  "loopback-rate-limit" \
+  "loopback-syn-aggregate-limit" \
+  "loopback-http-aggregate-limit"
 
 section "Current Traffic-Cleaning Rules"
 printf 'Project tag: %s\n' "$PROJECT_TAG"
@@ -256,7 +260,8 @@ print_matching_rules "$BASE_CHAIN" \
   "drop-null-flags" \
   "drop-xmas-flags" \
   "drop-syn-fin" \
-  "drop-syn-rst"
+  "drop-syn-rst" \
+  "drop-udp-to-http-port"
 
 section "Project Entrypoint"
 print_matching_rules INPUT "jump-to-defense"

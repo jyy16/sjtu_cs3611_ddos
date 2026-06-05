@@ -1,0 +1,86 @@
+{
+  "generated_at": "2026-05-26T02:05:48.155921+00:00",
+  "threshold": 0.8,
+  "decisions": [
+    {
+      "src_ip": "10.144.199.51",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.997319,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "10.155.139.43",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.997272,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "10.188.46.199",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.996289,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "10.222.80.169",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.997812,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "10.49.233.103",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.996743,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "127.0.0.1",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.998512,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "127.212.211.235",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.996345,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "127.246.218.82",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.996928,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "127.56.233.173",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.997272,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    },
+    {
+      "src_ip": "127.65.2.47",
+      "label": "attack",
+      "attack_type": "mixed_attack",
+      "confidence": 0.996941,
+      "action": "block",
+      "reason": "model_detected_mixed_attack"
+    }
+  ]
+}
