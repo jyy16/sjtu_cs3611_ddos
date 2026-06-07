@@ -1,4 +1,5 @@
 from collections import defaultdict
+import json
 
 import pandas as pd
 
@@ -105,6 +106,36 @@ def test_redis_store_writes_decisions_and_defense_actions():
     assert client.hashes["test:run:demo_run:decision:decision_demo_run"]["decision_count"] == "1"
     assert client.streams[decision_stream][0]["confidence"] == "0.96"
     assert client.streams[action_stream][0]["status"] == "applied"
+
+
+def test_redis_store_writes_demo_summary():
+    client = FakeRedis()
+    store = RedisStore(client, prefix="test")
+
+    info = store.save_demo_summary(
+        {
+            "run_id": "demo_run",
+            "status": "completed",
+            "completed_at": "2026-06-07T12:00:00+00:00",
+            "target_ip": "127.0.0.1",
+            "target_port": "8080",
+            "target_url": "http://127.0.0.1:8080/",
+            "decision_count": 2,
+            "paths": {
+                "decision_json": "data/logs/demo_run/decision_demo_run.json",
+                "feature_dir": "data/features/demo_run",
+            },
+        },
+        run_id="demo_run",
+    )
+
+    summary_key = "test:run:demo_run:summary"
+    assert info["key"] == summary_key
+    assert client.sets["test:run:demo_run:artifacts"] == {"demo_summary"}
+    assert client.hashes["test:run:demo_run"]["status"] == "completed"
+    assert client.hashes["test:run:demo_run"]["summary_key"] == summary_key
+    assert client.hashes[summary_key]["decision_count"] == "2"
+    assert json.loads(client.hashes[summary_key]["paths"])["feature_dir"] == "data/features/demo_run"
 
 
 def test_persist_helper_noops_when_storage_is_disabled(monkeypatch):

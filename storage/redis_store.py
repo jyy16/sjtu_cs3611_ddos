@@ -266,6 +266,53 @@ class RedisStore:
             "rows": len(records),
         }
 
+    def save_demo_summary(
+        self,
+        summary: Mapping[str, Any],
+        *,
+        run_id: str | None = None,
+        artifact: str | None = None,
+    ) -> dict[str, Any]:
+        resolved_run_id = resolve_run_id(explicit=run_id or str(summary.get("run_id") or ""))
+        resolved_artifact = artifact or "demo_summary"
+        summary_record = dict(summary)
+        summary_record["run_id"] = resolved_run_id
+        summary_key = self.key("run", resolved_run_id, "summary")
+
+        self._touch_run(
+            resolved_run_id,
+            {
+                "status": summary_record.get("status", "completed"),
+                "completed_at": summary_record.get("completed_at", ""),
+                "target_ip": summary_record.get("target_ip", ""),
+                "target_port": summary_record.get("target_port", ""),
+                "target_url": summary_record.get("target_url", ""),
+                "decision_count": summary_record.get("decision_count", ""),
+                "summary_key": summary_key,
+            },
+        )
+        self.client.sadd(self.key("run", resolved_run_id, "artifacts"), resolved_artifact)
+        self.client.hset(
+            summary_key,
+            mapping=_mapping(
+                {
+                    "type": "demo_summary",
+                    "artifact": resolved_artifact,
+                    **summary_record,
+                    "raw_json": json.dumps(_jsonable(summary_record), ensure_ascii=False, sort_keys=True),
+                    "stored_at": _now(),
+                }
+            ),
+        )
+
+        return {
+            "backend": "redis",
+            "run_id": resolved_run_id,
+            "artifact": resolved_artifact,
+            "key": summary_key,
+            "rows": 1,
+        }
+
 
 def _redis_client() -> Any:
     try:
@@ -319,3 +366,7 @@ def persist_decision_report(report: Mapping[str, Any], **kwargs: Any) -> dict[st
 
 def persist_defense_actions(actions: Iterable[Mapping[str, Any]], **kwargs: Any) -> dict[str, Any] | None:
     return _persist(lambda store: store.save_defense_actions(actions, **kwargs))
+
+
+def persist_demo_summary(summary: Mapping[str, Any], **kwargs: Any) -> dict[str, Any] | None:
+    return _persist(lambda store: store.save_demo_summary(summary, **kwargs))

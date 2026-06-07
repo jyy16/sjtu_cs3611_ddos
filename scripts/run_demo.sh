@@ -182,6 +182,7 @@ preflight() {
   need_file features/feature_schema.md
   need_file models/train_mlp.py
   need_file models/infer.py
+  need_file scripts/persist_demo_summary.py
 
   if [[ "$TRAIN" == "1" ]]; then
     need_file "$TRAIN_FEATURES"
@@ -462,6 +463,26 @@ run_cmd "$PYTHON" features/extract_features.py \
   --target-ip "$TARGET_IP" \
   --window-size "$FEATURE_WINDOW"
 run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
+
+if storage_is_enabled; then
+  phase "Persist Demo Summary"
+  run_cmd "$PYTHON" scripts/persist_demo_summary.py \
+    --run-id "$RUN_ID" \
+    --target-ip "$TARGET_IP" \
+    --target-port "$TARGET_PORT" \
+    --target-url "$TARGET_URL" \
+    --pcap-dir "$PCAP_DIR" \
+    --feature-dir "$FEATURE_DIR" \
+    --log-dir "$LOG_DIR" \
+    --normal-pcap "$NORMAL_PCAP" \
+    --normal-csv "$NORMAL_CSV" \
+    --attack-before-pcap "$ATTACK_BEFORE_PCAP" \
+    --attack-before-csv "$ATTACK_BEFORE_CSV" \
+    --attack-after-pcap "$ATTACK_AFTER_PCAP" \
+    --attack-after-csv "$ATTACK_AFTER_CSV" \
+    --decision-json "$DECISION_JSON" \
+    --project-tag "$PROJECT_TAG"
+fi
 
 phase "Demo Outputs"
 log "PCAP files:      $PCAP_DIR"

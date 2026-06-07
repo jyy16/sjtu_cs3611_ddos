@@ -324,6 +324,12 @@ redis-cli SMEMBERS cs3611:ddos:runs
 redis-cli HGETALL cs3611:ddos:run:<run_id>
 ```
 
+查看某次 run 的最终汇总：
+
+```bash
+redis-cli HGETALL cs3611:ddos:run:<run_id>:summary
+```
+
 查看特征流：
 
 ```bash
@@ -364,7 +370,7 @@ redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_actions - + COUNT 10
 ```bash
 bash -n scripts/run_demo.sh
 bash -n scripts/check_group_contract.sh
-.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py models/infer.py defense/apply_decision.py
+.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py models/infer.py defense/apply_decision.py scripts/persist_demo_summary.py
 ```
 
 ## 8. 清理命令
