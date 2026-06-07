@@ -313,6 +313,75 @@ class RedisStore:
             "rows": 1,
         }
 
+    def append_live_feature_rows(
+        self,
+        rows: Iterable[Mapping[str, Any]],
+        *,
+        run_id: str,
+        phase: str,
+        artifact: str = "live_features",
+    ) -> dict[str, Any]:
+        records = [dict(row) for row in rows]
+        stream_key = self.key("run", run_id, artifact)
+        summary_key = self.key("run", run_id, "live_summary")
+
+        self._touch_run(run_id, {"last_live_phase": phase, "live_stream_key": stream_key})
+        self.client.sadd(self.key("run", run_id, "artifacts"), artifact)
+        self.client.hset(
+            summary_key,
+            mapping=_mapping(
+                {
+                    "type": "live_features",
+                    "artifact": artifact,
+                    "stream_key": stream_key,
+                    "last_phase": phase,
+                    "last_row_count": len(records),
+                    "updated_at": _now(),
+                }
+            ),
+        )
+
+        for index, row in enumerate(records):
+            fields = {"row_index": index, "phase": phase, **row}
+            self.client.xadd(stream_key, _mapping(fields))
+
+        return {
+            "backend": "redis",
+            "run_id": run_id,
+            "artifact": artifact,
+            "key": stream_key,
+            "rows": len(records),
+        }
+
+    def append_live_event(
+        self,
+        event: Mapping[str, Any],
+        *,
+        run_id: str,
+        artifact: str = "events",
+    ) -> dict[str, Any]:
+        stream_key = self.key("run", run_id, artifact)
+        event_record = {"timestamp": _now(), **dict(event)}
+
+        self._touch_run(
+            run_id,
+            {
+                "last_event": event_record.get("event", ""),
+                "last_event_at": event_record.get("timestamp", ""),
+                "event_stream_key": stream_key,
+            },
+        )
+        self.client.sadd(self.key("run", run_id, "artifacts"), artifact)
+        self.client.xadd(stream_key, _mapping(event_record))
+
+        return {
+            "backend": "redis",
+            "run_id": run_id,
+            "artifact": artifact,
+            "key": stream_key,
+            "rows": 1,
+        }
+
 
 def _redis_client() -> Any:
     try:
@@ -370,3 +439,11 @@ def persist_defense_actions(actions: Iterable[Mapping[str, Any]], **kwargs: Any)
 
 def persist_demo_summary(summary: Mapping[str, Any], **kwargs: Any) -> dict[str, Any] | None:
     return _persist(lambda store: store.save_demo_summary(summary, **kwargs))
+
+
+def persist_live_feature_rows(rows: Iterable[Mapping[str, Any]], **kwargs: Any) -> dict[str, Any] | None:
+    return _persist(lambda store: store.append_live_feature_rows(rows, **kwargs))
+
+
+def persist_live_event(event: Mapping[str, Any], **kwargs: Any) -> dict[str, Any] | None:
+    return _persist(lambda store: store.append_live_event(event, **kwargs))

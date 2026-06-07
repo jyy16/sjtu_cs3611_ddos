@@ -138,6 +138,39 @@ def test_redis_store_writes_demo_summary():
     assert json.loads(client.hashes[summary_key]["paths"])["feature_dir"] == "data/features/demo_run"
 
 
+def test_redis_store_appends_live_features_and_events():
+    client = FakeRedis()
+    store = RedisStore(client, prefix="test")
+
+    feature_info = store.append_live_feature_rows(
+        [
+            {
+                "timestamp": "2026-06-07T12:00:00+00:00",
+                "src_ip": "10.0.0.9",
+                "dst_ip": "10.0.0.2",
+                "protocol": "TCP",
+                "pps": 200.0,
+                "syn_count": 50,
+            }
+        ],
+        run_id="demo_run",
+        phase="attack_before_defense",
+    )
+    event_info = store.append_live_event(
+        {"event": "phase_started", "phase": "attack_before_defense"},
+        run_id="demo_run",
+    )
+
+    live_key = "test:run:demo_run:live_features"
+    event_key = "test:run:demo_run:events"
+    assert feature_info["key"] == live_key
+    assert event_info["key"] == event_key
+    assert client.hashes["test:run:demo_run"]["last_live_phase"] == "attack_before_defense"
+    assert client.streams[live_key][0]["phase"] == "attack_before_defense"
+    assert client.streams[live_key][0]["pps"] == "200.0"
+    assert client.streams[event_key][0]["event"] == "phase_started"
+
+
 def test_persist_helper_noops_when_storage_is_disabled(monkeypatch):
     monkeypatch.delenv("STORAGE_BACKEND", raising=False)
 

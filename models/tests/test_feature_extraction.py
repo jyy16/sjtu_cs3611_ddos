@@ -3,6 +3,8 @@ import struct
 import pandas as pd
 
 from features.extract_features import FEATURE_COLUMNS, LINKTYPE_LINUX_SLL, LINKTYPE_LINUX_SLL2, extract_pcap_to_csv
+from features.extract_features import PacketRecord
+from features.live_extract_features import frame_rows
 
 
 def _ip_bytes(ip: str) -> bytes:
@@ -142,3 +144,31 @@ def test_extracts_linux_cooked_v2_capture_from_any_interface(tmp_path):
     assert set(saved["src_ip"]) == {"127.1.2.3", "127.4.5.6"}
     assert saved["syn_count"].sum() == 2
     assert saved["unique_src_ips"].iloc[0] == 2
+
+
+def test_live_feature_rows_include_phase_metadata():
+    rows = frame_rows(
+        [
+            PacketRecord(
+                timestamp=30.01,
+                src_ip="10.0.0.9",
+                dst_ip="10.0.0.2",
+                protocol="TCP",
+                length=60,
+                syn=True,
+                ack=False,
+            )
+        ],
+        label="attack",
+        attack_type="mixed_attack",
+        target_ip="10.0.0.2",
+        window_size=1.0,
+        phase="attack_before_defense",
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["src_ip"] == "10.0.0.9"
+    assert rows[0]["label"] == "attack"
+    assert rows[0]["attack_type"] == "mixed_attack"
+    assert rows[0]["phase"] == "attack_before_defense"
+    assert rows[0]["syn_count"] == 1

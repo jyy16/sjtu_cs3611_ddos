@@ -70,6 +70,18 @@ bash scripts/run_demo.sh --dry-run
 bash scripts/run_demo.sh
 ```
 
+启用 Redis 后，完整 demo 会自动启动实时特征流和本地 dashboard：
+
+```text
+http://127.0.0.1:8090/?run_id=<run_id>
+```
+
+如果只想跑离线流程，可以临时关闭：
+
+```bash
+bash scripts/run_demo.sh --no-live --no-dashboard
+```
+
 使用固定 run id，方便报告引用和复现实验：
 
 ```bash
@@ -330,6 +342,13 @@ redis-cli HGETALL cs3611:ddos:run:<run_id>
 redis-cli HGETALL cs3611:ddos:run:<run_id>:summary
 ```
 
+查看实时阶段事件和实时特征流：
+
+```bash
+redis-cli XRANGE cs3611:ddos:run:<run_id>:events - + COUNT 20
+redis-cli XRANGE cs3611:ddos:run:<run_id>:live_features - + COUNT 20
+```
+
 查看特征流：
 
 ```bash
@@ -370,7 +389,7 @@ redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_actions - + COUNT 10
 ```bash
 bash -n scripts/run_demo.sh
 bash -n scripts/check_group_contract.sh
-.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py models/infer.py defense/apply_decision.py scripts/persist_demo_summary.py
+.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py features/live_extract_features.py models/infer.py defense/apply_decision.py scripts/persist_demo_summary.py scripts/persist_live_event.py scripts/live_dashboard.py
 ```
 
 ## 8. 清理命令

@@ -45,6 +45,12 @@ STORAGE_BACKEND="${STORAGE_BACKEND:-none}"
 REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379/0}"
 STORAGE_KEY_PREFIX="${STORAGE_KEY_PREFIX:-cs3611:ddos}"
 STORAGE_FAIL_OPEN="${STORAGE_FAIL_OPEN:-0}"
+LIVE_CAPTURE="${LIVE_CAPTURE:-1}"
+LIVE_DASHBOARD="${LIVE_DASHBOARD:-1}"
+LIVE_DASHBOARD_HOST="${LIVE_DASHBOARD_HOST:-127.0.0.1}"
+LIVE_DASHBOARD_PORT="${LIVE_DASHBOARD_PORT:-8090}"
+LIVE_STREAM_ARTIFACT="${LIVE_STREAM_ARTIFACT:-live_features}"
+LIVE_PHASE_FILE="${LIVE_PHASE_FILE:-}"
 
 PCAP_DIR="${PCAP_DIR:-data/pcap/${RUN_ID}}"
 FEATURE_DIR="${FEATURE_DIR:-data/features/${RUN_ID}}"
@@ -54,6 +60,9 @@ export RUN_ID STORAGE_BACKEND REDIS_URL STORAGE_KEY_PREFIX STORAGE_FAIL_OPEN
 
 TCPDUMP_PID=""
 TARGET_PID=""
+LIVE_CAPTURE_PID=""
+LIVE_DASHBOARD_PID=""
+SUDO_AUTH_DONE=0
 
 usage() {
   cat <<'EOF'
@@ -69,6 +78,8 @@ Options:
   --target-url URL          Victim HTTP URL.
   --iface IFACE             tcpdump capture interface, for example lo or h1-eth0.
   --run-id ID               Output folder suffix.
+  --no-live                 Disable live Redis feature streaming.
+  --no-dashboard            Disable the local live dashboard server.
   -h, --help                Show this help.
 
 Typical local demo:
@@ -107,6 +118,19 @@ run_cmd() {
   fi
 }
 
+ensure_sudo_auth() {
+  if [[ -z "$SUDO" || "$DRY_RUN" == "1" || "${EUID:-$(id -u)}" -eq 0 ]]; then
+    return
+  fi
+  if [[ "$SUDO_AUTH_DONE" == "1" ]]; then
+    return
+  fi
+  phase "Authenticate sudo"
+  quote_cmd "$SUDO" -v
+  "$SUDO" -v || die "sudo authentication failed; tcpdump/raw packet steps need elevated privileges"
+  SUDO_AUTH_DONE=1
+}
+
 is_private_ipv4() {
   local ip="$1"
   [[ "$ip" =~ ^127\. ]] && return 0
@@ -136,6 +160,29 @@ storage_fail_open_enabled() {
       return 1
       ;;
   esac
+}
+
+flag_enabled() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on|enabled)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+live_storage_enabled() {
+  storage_is_enabled && { flag_enabled "$LIVE_CAPTURE" || flag_enabled "$LIVE_DASHBOARD"; }
+}
+
+live_capture_enabled() {
+  storage_is_enabled && flag_enabled "$LIVE_CAPTURE"
+}
+
+live_dashboard_enabled() {
+  storage_is_enabled && flag_enabled "$LIVE_DASHBOARD"
 }
 
 validate_safety() {
@@ -183,6 +230,14 @@ preflight() {
   need_file models/train_mlp.py
   need_file models/infer.py
   need_file scripts/persist_demo_summary.py
+
+  if live_storage_enabled; then
+    need_file features/live_extract_features.py
+    need_file scripts/persist_live_event.py
+  fi
+  if live_dashboard_enabled; then
+    need_file scripts/live_dashboard.py
+  fi
 
   if [[ "$TRAIN" == "1" ]]; then
     need_file "$TRAIN_FEATURES"
@@ -274,6 +329,7 @@ start_capture() {
   if [[ "$DRY_RUN" == "1" ]]; then
     return
   fi
+  ensure_sudo_auth
   if [[ -n "$SUDO" ]]; then
     "$SUDO" tcpdump -i "$CAPTURE_IFACE" -nn -w "$pcap" "host $TARGET_IP" \
       >"$LOG_DIR/tcpdump_$(basename "$pcap" .pcap).log" 2>&1 &
@@ -297,8 +353,120 @@ stop_capture() {
   TCPDUMP_PID=""
 }
 
+set_live_phase() {
+  local phase_name="$1"
+  local label="$2"
+  local attack_type="$3"
+  if ! live_storage_enabled; then
+    return
+  fi
+  run_cmd "$PYTHON" scripts/persist_live_event.py \
+    --run-id "$RUN_ID" \
+    --event phase_started \
+    --phase "$phase_name" \
+    --label "$label" \
+    --attack-type "$attack_type" \
+    --phase-file "$LIVE_PHASE_FILE"
+}
+
+start_live_dashboard() {
+  if ! live_dashboard_enabled; then
+    return
+  fi
+  phase "Start Live Dashboard"
+  quote_cmd "$PYTHON" scripts/live_dashboard.py \
+    --run-id "$RUN_ID" \
+    --host "$LIVE_DASHBOARD_HOST" \
+    --port "$LIVE_DASHBOARD_PORT" \
+    --redis-url "$REDIS_URL" \
+    --prefix "$STORAGE_KEY_PREFIX"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    return
+  fi
+  "$PYTHON" scripts/live_dashboard.py \
+    --run-id "$RUN_ID" \
+    --host "$LIVE_DASHBOARD_HOST" \
+    --port "$LIVE_DASHBOARD_PORT" \
+    --redis-url "$REDIS_URL" \
+    --prefix "$STORAGE_KEY_PREFIX" \
+    >"$LOG_DIR/live_dashboard.log" 2>&1 &
+  LIVE_DASHBOARD_PID="$!"
+  sleep 1
+  if ! kill -0 "$LIVE_DASHBOARD_PID" >/dev/null 2>&1; then
+    die "Failed to start live dashboard; see $LOG_DIR/live_dashboard.log"
+  fi
+  log "Live dashboard: http://${LIVE_DASHBOARD_HOST}:${LIVE_DASHBOARD_PORT}/?run_id=${RUN_ID}"
+}
+
+start_live_capture() {
+  if ! live_capture_enabled; then
+    return
+  fi
+  phase "Start Live Redis Feature Stream"
+  local sudo_args=()
+  if [[ -n "$SUDO" ]]; then
+    sudo_args=(--sudo-command "$SUDO")
+  else
+    sudo_args=(--no-sudo)
+  fi
+  quote_cmd "$PYTHON" features/live_extract_features.py \
+    --run-id "$RUN_ID" \
+    --iface "$CAPTURE_IFACE" \
+    --target-ip "$TARGET_IP" \
+    --window-size "$FEATURE_WINDOW" \
+    --phase-file "$LIVE_PHASE_FILE" \
+    --artifact "$LIVE_STREAM_ARTIFACT" \
+    --tcpdump-log "$LOG_DIR/live_tcpdump.log" \
+    "${sudo_args[@]}"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    return
+  fi
+  ensure_sudo_auth
+  "$PYTHON" features/live_extract_features.py \
+    --run-id "$RUN_ID" \
+    --iface "$CAPTURE_IFACE" \
+    --target-ip "$TARGET_IP" \
+    --window-size "$FEATURE_WINDOW" \
+    --phase-file "$LIVE_PHASE_FILE" \
+    --artifact "$LIVE_STREAM_ARTIFACT" \
+    --tcpdump-log "$LOG_DIR/live_tcpdump.log" \
+    "${sudo_args[@]}" \
+    >"$LOG_DIR/live_features.log" 2>&1 &
+  LIVE_CAPTURE_PID="$!"
+  sleep 2
+  if ! kill -0 "$LIVE_CAPTURE_PID" >/dev/null 2>&1; then
+    die "Failed to start live feature stream; see $LOG_DIR/live_features.log"
+  fi
+  log "Live Redis stream: ${STORAGE_KEY_PREFIX}:run:${RUN_ID}:${LIVE_STREAM_ARTIFACT}"
+}
+
+stop_live_capture() {
+  if [[ -z "$LIVE_CAPTURE_PID" ]]; then
+    return
+  fi
+  phase "Stop Live Redis Feature Stream"
+  if [[ "$DRY_RUN" != "1" ]]; then
+    kill -INT "$LIVE_CAPTURE_PID" >/dev/null 2>&1 || true
+    wait "$LIVE_CAPTURE_PID" >/dev/null 2>&1 || true
+  fi
+  LIVE_CAPTURE_PID=""
+}
+
+stop_live_dashboard() {
+  if [[ -z "$LIVE_DASHBOARD_PID" ]]; then
+    return
+  fi
+  if [[ "$DRY_RUN" != "1" ]]; then
+    kill "$LIVE_DASHBOARD_PID" >/dev/null 2>&1 || true
+    wait "$LIVE_DASHBOARD_PID" >/dev/null 2>&1 || true
+  fi
+  LIVE_DASHBOARD_PID=""
+}
+
 cleanup() {
   stop_capture
+  stop_live_capture
+  stop_live_dashboard
   if [[ -n "$TARGET_PID" ]]; then
     kill "$TARGET_PID" >/dev/null 2>&1 || true
     wait "$TARGET_PID" >/dev/null 2>&1 || true
@@ -346,6 +514,14 @@ while [[ $# -gt 0 ]]; do
       LOG_DIR="data/logs/${RUN_ID}"
       shift 2
       ;;
+    --no-live)
+      LIVE_CAPTURE=0
+      shift
+      ;;
+    --no-dashboard)
+      LIVE_DASHBOARD=0
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -365,6 +541,7 @@ if [[ "$CHECK_ONLY" == "1" ]]; then
 fi
 
 ensure_dirs
+LIVE_PHASE_FILE="${LIVE_PHASE_FILE:-$LOG_DIR/live_phase.json}"
 
 NORMAL_PCAP="$PCAP_DIR/normal_${RUN_ID}.pcap"
 NORMAL_CSV="$FEATURE_DIR/normal_${RUN_ID}.csv"
@@ -382,14 +559,19 @@ if [[ "$TRAIN" == "1" ]]; then
     --metrics-out "$LOG_DIR/train_metrics_${RUN_ID}.json"
 fi
 
-start_target_server
-check_target_url
-
 phase "Reset Defense Rules"
 run_cmd bash defense/unblock_all.sh --project-tag "$PROJECT_TAG"
 run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
 
+start_target_server
+check_target_url
+
+start_live_dashboard
+set_live_phase initializing normal initializing
+start_live_capture
+
 phase "Generate Normal Traffic"
+set_live_phase normal normal normal
 start_capture "$NORMAL_PCAP"
 run_cmd "$PYTHON" attacks/normal_traffic.py \
   --target-url "$TARGET_URL" \
@@ -406,6 +588,7 @@ run_cmd "$PYTHON" features/extract_features.py \
   --window-size "$FEATURE_WINDOW"
 
 phase "Run Attack Before Defense"
+set_live_phase attack_before_defense attack mixed_attack
 start_capture "$ATTACK_BEFORE_PCAP"
 run_cmd bash attacks/run_mixed_attack.sh \
   --target-ip "$TARGET_IP" \
@@ -419,6 +602,7 @@ run_cmd bash attacks/run_mixed_attack.sh \
 stop_capture
 
 phase "Infer Attack And Apply Defense"
+set_live_phase defense attack defense_apply
 run_cmd "$PYTHON" features/extract_features.py \
   --input "$ATTACK_BEFORE_PCAP" \
   --output "$ATTACK_BEFORE_CSV" \
@@ -444,6 +628,7 @@ run_cmd "$PYTHON" defense/apply_decision.py \
 run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
 
 phase "Run Same Attack After Defense"
+set_live_phase attack_after_defense attack mixed_attack_after_defense
 start_capture "$ATTACK_AFTER_PCAP"
 run_cmd bash attacks/run_mixed_attack.sh \
   --target-ip "$TARGET_IP" \
@@ -463,6 +648,9 @@ run_cmd "$PYTHON" features/extract_features.py \
   --target-ip "$TARGET_IP" \
   --window-size "$FEATURE_WINDOW"
 run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
+
+set_live_phase completed attack demo_completed
+stop_live_capture
 
 if storage_is_enabled; then
   phase "Persist Demo Summary"
