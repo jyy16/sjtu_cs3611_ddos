@@ -9,7 +9,7 @@ ENV_FILE="${ENV_FILE:-scripts/demo.env}"
 if [[ -f "$ENV_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090
-  source "$ENV_FILE"
+  source <(sed 's/\r$//' "$ENV_FILE")
   set +a
 fi
 if [[ -n "$PYTHON_OVERRIDE" ]]; then

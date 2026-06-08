@@ -88,6 +88,52 @@ Mininet 或外部 victim 服务场景：
 START_TARGET=0 TARGET_IP=10.0.0.2 TARGET_PORT=80 TARGET_URL=http://10.0.0.2/ CAPTURE_IFACE=h1-eth0 bash scripts/run_demo.sh --run-id mininet_demo_01
 ```
 
+### 2.1 实时攻防演示（新增）
+
+`scripts/run_demo.sh` 保留“攻击前抓包 -> 离线推理封禁 -> 防御后再攻击”的前后对比流程。若要演示“混合攻击进行时，后台同步进行 AI 推理与自动封禁”，使用新的实时脚本：
+
+```bash
+bash scripts/run_realtime_demo.sh --check-only
+```
+
+查看实时脚本将执行哪些命令：
+
+```bash
+bash scripts/run_realtime_demo.sh --dry-run
+```
+
+正式运行实时攻防演示：
+
+```bash
+bash scripts/run_realtime_demo.sh --run-id realtime_demo_01
+```
+
+实时脚本的关键区别是：`attacks/run_mixed_attack.sh` 在前台持续运行，同时后台启动 `realtime_defense_loop`，按窗口执行“抓包 -> 特征提取 -> 模型推理 -> apply_decision 自动封禁”。这不是先攻击后封禁。
+
+调整后台实时检测窗口长度，例如每 3 秒推理一次：
+
+```bash
+REALTIME_WINDOW_SECONDS=3 bash scripts/run_realtime_demo.sh --run-id realtime_demo_02
+```
+
+如果模型加载或 iptables 封禁比较慢，把实时攻击时长拉长，确保封禁动作发生在攻击仍在进行时：
+
+```bash
+REALTIME_ATTACK_SECONDS=180 bash scripts/run_realtime_demo.sh --run-id realtime_demo_03
+```
+
+默认实时脚本不预先安装基础限速规则，更容易展示“模型识别后才自动封禁”。如果希望同时打开基础 SYN/HTTP/UDP 防御规则：
+
+```bash
+bash scripts/run_realtime_demo.sh --baseline --run-id realtime_baseline_01
+```
+
+Mininet 或外部 victim 服务的实时演示：
+
+```bash
+START_TARGET=0 TARGET_IP=10.0.0.2 TARGET_PORT=80 TARGET_URL=http://10.0.0.2/ CAPTURE_IFACE=h1-eth0 bash scripts/run_realtime_demo.sh --run-id mininet_realtime_01
+```
+
 ## 3. 组内接口自测
 
 攻击组：
@@ -310,6 +356,21 @@ cat data/logs/<run_id>/train_metrics_<run_id>.json
   --title "Project 9 DDoS Defense Demo"
 ```
 
+生成实时攻防 HTML 可视化页面：
+
+```bash
+.venv/bin/python scripts/visualize_realtime_demo.py --run-id <run_id>
+```
+
+指定实时可视化输出位置：
+
+```bash
+.venv/bin/python scripts/visualize_realtime_demo.py \
+  --run-id <run_id> \
+  --output data/logs/<run_id>/realtime_visualization_<run_id>.html \
+  --title "Project 9 Realtime DDoS Defense Demo"
+```
+
 ## 6. Redis 数据检查
 
 查看所有 demo run：
@@ -345,6 +406,13 @@ redis-cli XRANGE cs3611:ddos:run:<run_id>:decision:decision_<run_id>:items - + C
 redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_actions - + COUNT 10
 ```
 
+查看 `defense/block_ip.sh` 实际写入的自动封禁日志备份：
+
+```bash
+redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_block_log - + COUNT 10
+redis-cli HGETALL cs3611:ddos:run:<run_id>:defense_block_log_summary:defense_blocks_<run_id>
+```
+
 ## 7. 测试与验证
 
 运行受影响的轻量测试：
@@ -363,8 +431,9 @@ redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_actions - + COUNT 10
 
 ```bash
 bash -n scripts/run_demo.sh
+bash -n scripts/run_realtime_demo.sh
 bash -n scripts/check_group_contract.sh
-.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py models/infer.py defense/apply_decision.py
+.venv/bin/python -m py_compile storage/redis_store.py features/extract_features.py models/infer.py defense/apply_decision.py scripts/visualize_realtime_demo.py
 ```
 
 ## 8. 清理命令

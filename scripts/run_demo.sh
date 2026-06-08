@@ -8,7 +8,7 @@ ENV_FILE="${ENV_FILE:-scripts/demo.env}"
 if [[ -f "$ENV_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090
-  source "$ENV_FILE"
+  source <(sed 's/\r$//' "$ENV_FILE")
   set +a
 fi
 
@@ -178,6 +178,7 @@ preflight() {
   need_file defense/show_rules.sh
   need_file defense/block_ip.sh
   need_file defense/apply_decision.py
+  need_file defense/backup_defense_blocks.py
   need_file features/extract_features.py
   need_file features/feature_schema.md
   need_file models/train_mlp.py
@@ -462,6 +463,10 @@ run_cmd "$PYTHON" features/extract_features.py \
   --target-ip "$TARGET_IP" \
   --window-size "$FEATURE_WINDOW"
 run_cmd bash defense/show_rules.sh --project-tag "$PROJECT_TAG"
+run_cmd "$PYTHON" defense/backup_defense_blocks.py \
+  --log "$LOG_DIR/defense_blocks.log" \
+  --run-id "$RUN_ID" \
+  --artifact "defense_blocks_${RUN_ID}"
 
 phase "Demo Outputs"
 log "PCAP files:      $PCAP_DIR"

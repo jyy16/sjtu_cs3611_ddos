@@ -44,10 +44,14 @@ cs3611:ddos:run:<run_id>:features:<artifact>
 cs3611:ddos:run:<run_id>:decision:<artifact>
 cs3611:ddos:run:<run_id>:decision:<artifact>:items
 cs3611:ddos:run:<run_id>:defense_actions
+cs3611:ddos:run:<run_id>:defense_block_log
+cs3611:ddos:run:<run_id>:defense_block_log_summary:<artifact>
 ```
 
 Feature rows and individual decisions are Redis Streams. Summary metadata is
-stored in Redis hashes.
+stored in Redis hashes. `defense_actions` records model-driven apply decisions,
+while `defense_block_log` is the Redis backup of the actual `block_ip.sh`
+execution log.
 
 ## Inspect
 
@@ -56,6 +60,7 @@ redis-cli SMEMBERS cs3611:ddos:runs
 redis-cli HGETALL cs3611:ddos:run:<run_id>
 redis-cli XRANGE cs3611:ddos:run:<run_id>:features:attack_before_defense_<run_id> - + COUNT 3
 redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_actions - + COUNT 10
+redis-cli XRANGE cs3611:ddos:run:<run_id>:defense_block_log - + COUNT 10
 ```
 
 Keep `STORAGE_FAIL_OPEN=0` for final grading so Redis problems fail fast during

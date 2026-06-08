@@ -1,4 +1,9 @@
+/.gitattributes text eol=lf
+README.md text eol=lf
 *.sh text eol=lf
 *.py text eol=lf
 defense/nginx.conf text eol=lf
+docs/demo_commands.md text eol=lf
+docs/storage.md text eol=lf
 scripts/demo.env.example text eol=lf
+scripts/demo.env text eol=lf

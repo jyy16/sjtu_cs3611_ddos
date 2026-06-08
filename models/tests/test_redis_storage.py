@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from storage.redis_store import RedisStore, persist_defense_actions
+from storage.redis_store import RedisStore, persist_defense_actions, persist_defense_block_log
 
 
 class FakeRedis:
@@ -107,7 +107,36 @@ def test_redis_store_writes_decisions_and_defense_actions():
     assert client.streams[action_stream][0]["status"] == "applied"
 
 
+def test_redis_store_writes_defense_block_log_stream():
+    client = FakeRedis()
+    store = RedisStore(client, prefix="test")
+
+    info = store.save_defense_block_log(
+        [
+            {
+                "timestamp": "2026-06-08T10:55:32+08:00",
+                "action": "rate_limit_loopback",
+                "src_ip": "127.0.0.1",
+                "reason": "model_detected_mixed_attack",
+                "ttl": 300,
+                "project_tag": "cs3611-ddos",
+            }
+        ],
+        log_path="data/logs/demo_run/defense_blocks.log",
+        artifact="defense_blocks_demo_run",
+    )
+
+    stream_key = "test:run:demo_run:defense_block_log"
+    summary_key = "test:run:demo_run:defense_block_log_summary:defense_blocks_demo_run"
+    assert info["key"] == stream_key
+    assert info["rows"] == 1
+    assert client.hashes[summary_key]["row_count"] == "1"
+    assert client.streams[stream_key][0]["src_ip"] == "127.0.0.1"
+    assert client.streams[stream_key][0]["action"] == "rate_limit_loopback"
+
+
 def test_persist_helper_noops_when_storage_is_disabled(monkeypatch):
     monkeypatch.delenv("STORAGE_BACKEND", raising=False)
 
     assert persist_defense_actions([]) is None
+    assert persist_defense_block_log([]) is None

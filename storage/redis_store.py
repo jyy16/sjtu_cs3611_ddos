@@ -266,6 +266,49 @@ class RedisStore:
             "rows": len(records),
         }
 
+    def save_defense_block_log(
+        self,
+        records: Iterable[Mapping[str, Any]],
+        *,
+        log_path: str | Path | None = None,
+        run_id: str | None = None,
+        artifact: str | None = None,
+    ) -> dict[str, Any]:
+        resolved_run_id = resolve_run_id(log_path, explicit=run_id)
+        resolved_artifact = artifact_name(log_path, explicit=artifact or "defense_blocks")
+        rows = [dict(record) for record in records]
+        stream_key = self.key("run", resolved_run_id, "defense_block_log")
+        summary_key = self.key("run", resolved_run_id, "defense_block_log_summary", resolved_artifact)
+
+        self._touch_run(resolved_run_id, {"last_defense_block_log": resolved_artifact})
+        self.client.sadd(self.key("run", resolved_run_id, "artifacts"), resolved_artifact)
+        self.client.delete(stream_key)
+        self.client.hset(
+            summary_key,
+            mapping=_mapping(
+                {
+                    "type": "defense_block_log",
+                    "artifact": resolved_artifact,
+                    "log_path": str(log_path or ""),
+                    "row_count": len(rows),
+                    "stream_key": stream_key,
+                    "stored_at": _now(),
+                }
+            ),
+        )
+
+        for index, record in enumerate(rows):
+            fields = {"row_index": index, "artifact": resolved_artifact, **record}
+            self.client.xadd(stream_key, _mapping(fields))
+
+        return {
+            "backend": "redis",
+            "run_id": resolved_run_id,
+            "artifact": resolved_artifact,
+            "key": stream_key,
+            "rows": len(rows),
+        }
+
 
 def _redis_client() -> Any:
     try:
@@ -319,3 +362,7 @@ def persist_decision_report(report: Mapping[str, Any], **kwargs: Any) -> dict[st
 
 def persist_defense_actions(actions: Iterable[Mapping[str, Any]], **kwargs: Any) -> dict[str, Any] | None:
     return _persist(lambda store: store.save_defense_actions(actions, **kwargs))
+
+
+def persist_defense_block_log(records: Iterable[Mapping[str, Any]], **kwargs: Any) -> dict[str, Any] | None:
+    return _persist(lambda store: store.save_defense_block_log(records, **kwargs))
