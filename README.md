@@ -2,7 +2,7 @@
 
 Project 9: DDoS 攻击对抗与基于深度学习的智能防御系统。
 
-完整命令说明见 [docs/demo_commands.md](docs/demo_commands.md)，Redis 存储说明见 [docs/storage.md](docs/storage.md)。
+完整的项目报告和操作手册请参考`report`文件夹，以下是简略版的操作手册
 
 ## 环境准备
 
