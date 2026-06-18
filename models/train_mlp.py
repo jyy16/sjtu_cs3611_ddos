@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from torch import nn
 
 if __package__ is None or __package__ == "":
-    sys.path.append(str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from models.feature_utils import LABEL_TO_ID, NUMERIC_FEATURES, feature_matrix, labels_from_frame, load_feature_csv, scaler_to_state
 

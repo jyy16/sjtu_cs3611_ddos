@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+
+if TYPE_CHECKING:
+    from sklearn.preprocessing import StandardScaler
 
 
 NUMERIC_FEATURES = [
@@ -49,7 +52,7 @@ def labels_from_frame(frame: pd.DataFrame) -> np.ndarray:
     return labels.to_numpy(dtype=np.float32)
 
 
-def scaler_to_state(scaler: StandardScaler) -> dict[str, list[float]]:
+def scaler_to_state(scaler: "StandardScaler") -> dict[str, list[float]]:
     return {
         "mean": scaler.mean_.astype(float).tolist(),
         "scale": scaler.scale_.astype(float).tolist(),
@@ -57,7 +60,9 @@ def scaler_to_state(scaler: StandardScaler) -> dict[str, list[float]]:
     }
 
 
-def scaler_from_state(state: dict[str, list[float]]) -> StandardScaler:
+def scaler_from_state(state: dict[str, list[float]]) -> "StandardScaler":
+    from sklearn.preprocessing import StandardScaler
+
     scaler = StandardScaler()
     scaler.mean_ = np.asarray(state["mean"], dtype=np.float64)
     scaler.scale_ = np.asarray(state["scale"], dtype=np.float64)

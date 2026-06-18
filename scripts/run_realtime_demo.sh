@@ -38,8 +38,11 @@ REALTIME_GRACE_SECONDS="${REALTIME_GRACE_SECONDS:-2}"
 TCPDUMP_WARMUP_SECONDS="${TCPDUMP_WARMUP_SECONDS:-1}"
 DEFENSE_TTL="${DEFENSE_TTL:-300}"
 INSTALL_BASELINE="${INSTALL_BASELINE:-0}"
+REALTIME_USE_FAST_MODEL="${REALTIME_USE_FAST_MODEL:-1}"
 
 MODEL_PATH="${MODEL_PATH:-models/saved/model.pth}"
+REALTIME_FAST_MODEL="${REALTIME_FAST_MODEL:-}"
+REALTIME_INFER_MODEL="${REALTIME_INFER_MODEL:-$MODEL_PATH}"
 TRAIN_FEATURES="${TRAIN_FEATURES:-data/features/train.csv}"
 START_TARGET="${START_TARGET:-1}"
 TARGET_SITE_DIR="${TARGET_SITE_DIR:-demo_site}"
@@ -214,6 +217,7 @@ preflight() {
   need_file defense/apply_decision.py
   need_file defense/backup_defense_blocks.py
   need_file features/extract_features.py
+  need_file models/export_fast_model.py
   need_file models/train_mlp.py
   need_file models/infer.py
   need_file scripts/visualize_realtime_demo.py
@@ -470,7 +474,7 @@ run_realtime_defense_loop() {
     if [[ "$extract_status" == "ok" ]] && csv_has_rows "$csv"; then
       if "$PYTHON" models/infer.py \
         --input "$csv" \
-        --model "$MODEL_PATH" \
+        --model "$REALTIME_INFER_MODEL" \
         --output "$decision_json" \
         --threshold "$CONFIDENCE_THRESHOLD" \
         >"$infer_log" 2>&1; then
@@ -651,6 +655,21 @@ run_cmd "$PYTHON" features/extract_features.py \
   --attack-type normal \
   --target-ip "$TARGET_IP" \
   --window-size "$FEATURE_WINDOW"
+
+if [[ "$REALTIME_USE_FAST_MODEL" == "1" ]]; then
+  phase "Prepare Realtime Fast Model"
+  if [[ -z "$REALTIME_FAST_MODEL" ]]; then
+    REALTIME_FAST_MODEL="$LOG_DIR/fast_model_${RUN_ID}.json"
+  fi
+  run_cmd "$PYTHON" models/export_fast_model.py \
+    --model "$MODEL_PATH" \
+    --output "$REALTIME_FAST_MODEL"
+  REALTIME_INFER_MODEL="$REALTIME_FAST_MODEL"
+  log "Realtime inference model: $REALTIME_INFER_MODEL"
+else
+  REALTIME_INFER_MODEL="$MODEL_PATH"
+  log "Realtime inference model: $REALTIME_INFER_MODEL"
+fi
 
 phase "Run Mixed Attack With Realtime Defense"
 start_tcpdump "$REALTIME_ATTACK_PCAP" "$LOG_DIR/tcpdump_attack_realtime_defense_${RUN_ID}.log" ATTACK_TCPDUMP_PID

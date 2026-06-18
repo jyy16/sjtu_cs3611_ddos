@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from models.infer import export_fast_model
 from models.infer import run_inference
 from models.train_mlp import train_from_csv
 
@@ -122,6 +123,35 @@ def test_inference_outputs_block_decision_for_attack_source(tmp_path):
     assert saved["decisions"][0]["action"] == "block"
     assert saved["decisions"][0]["reason"] == "model_detected_mixed_attack"
     assert saved["decisions"][0]["confidence"] >= 0.80
+
+
+def test_fast_model_export_matches_torch_inference(tmp_path):
+    train_csv = tmp_path / "train.csv"
+    model_path = tmp_path / "model.pth"
+    fast_model_path = tmp_path / "model.fast.json"
+    metrics_path = tmp_path / "metrics.json"
+    _make_feature_frame().to_csv(train_csv, index=False)
+    train_from_csv(train_csv, model_path, metrics_path, epochs=35, seed=13)
+
+    infer_csv = tmp_path / "infer.csv"
+    _make_feature_frame().tail(10).to_csv(infer_csv, index=False)
+    torch_decision_path = tmp_path / "decision_torch.json"
+    fast_decision_path = tmp_path / "decision_fast.json"
+
+    payload = export_fast_model(model_path, fast_model_path)
+    torch_result = run_inference(infer_csv, model_path, torch_decision_path, threshold=0.80)
+    fast_result = run_inference(infer_csv, fast_model_path, fast_decision_path, threshold=0.80)
+
+    assert payload["format"] == "cs3611-fast-mlp-v1"
+    assert fast_model_path.exists()
+    assert [item["src_ip"] for item in fast_result["decisions"]] == [
+        item["src_ip"] for item in torch_result["decisions"]
+    ]
+    np.testing.assert_allclose(
+        [item["confidence"] for item in fast_result["decisions"]],
+        [item["confidence"] for item in torch_result["decisions"]],
+        atol=1e-5,
+    )
 
 
 def test_training_writes_checkpoints_history_and_tuned_threshold(tmp_path):

@@ -60,6 +60,49 @@ REALTIME_ATTACK_SECONDS=180 bash scripts/run_realtime_demo.sh --run-id realtime_
 .venv/bin/python scripts/visualize_realtime_demo.py --run-id realtime_demo_02
 ```
 
+## CDN / 边缘代理集成
+
+CDN 集成由 `defense/nginx.conf` 提供：`client -> http://127.0.0.1:8081/ -> origin http://127.0.0.1:8080/`。总控脚本不会自动启动 nginx，需要在运行 demo 前先启动边缘代理。
+
+如果系统没有 nginx，先安装：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y nginx
+```
+
+检查并启动本项目的 nginx edge：
+
+```bash
+nginx -t -c "$(pwd)/defense/nginx.conf"
+nginx -c "$(pwd)/defense/nginx.conf"
+curl -i http://127.0.0.1:8081/healthz
+```
+
+让正常流量和 HTTP Flood 经过 CDN edge，SYN/UDP 仍打 origin 的 `127.0.0.1:8080`：
+
+```bash
+TARGET_URL=http://127.0.0.1:8081/ bash scripts/run_demo.sh --run-id cdn_demo_01
+TARGET_URL=http://127.0.0.1:8081/ bash scripts/run_realtime_demo.sh --run-id cdn_realtime_01
+```
+
+如果希望攻击目标端口也切到 edge 的 `8081`，先手动启动 origin，再用 `START_TARGET=0` 运行 demo：
+
+```bash
+.venv/bin/python -m http.server 8080 --bind 127.0.0.1 --directory demo_site \
+  >/tmp/cs3611-origin.log 2>&1 &
+
+START_TARGET=0 TARGET_IP=127.0.0.1 TARGET_PORT=8081 TARGET_URL=http://127.0.0.1:8081/ \
+  bash scripts/run_demo.sh --run-id cdn_edge_port_01
+```
+
+查看 CDN edge 响应头和访问日志：
+
+```bash
+curl -I http://127.0.0.1:8081/
+tail -f /tmp/cs3611-nginx-access.log
+```
+
 ## Redis 存储
 
 启动 Redis：
@@ -110,4 +153,10 @@ bash defense/unblock_all.sh --project-tag cs3611-ddos
 
 ```bash
 docker stop cs3611-redis
+```
+
+停止 CDN edge：
+
+```bash
+nginx -s stop -c "$(pwd)/defense/nginx.conf" || true
 ```
