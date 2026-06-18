@@ -403,3 +403,4 @@ secrets/
 *.secret
 .env.local
 .env.*.local
+group_command_requirements.md
