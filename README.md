@@ -39,6 +39,8 @@ bash scripts/run_demo.sh --run-id demo_01
 .venv/bin/python scripts/visualize_demo.py --run-id demo_01
 ```
 
+最终结果显示在`data/logs/demo_01/demo_visualization_demo_01.html`
+
 ## 实时攻防演示
 
 实时演示用于展示“前台混合攻击运行时，后台同步抓包、推理并自动封禁”。
@@ -51,14 +53,16 @@ bash scripts/run_realtime_demo.sh --run-id realtime_demo_01
 如果机器较慢，建议拉长前台攻击时间，确保封禁动作发生在攻击仍在运行时：
 
 ```bash
-REALTIME_ATTACK_SECONDS=180 bash scripts/run_realtime_demo.sh --run-id realtime_demo_02
+REALTIME_ATTACK_SECONDS=180 bash scripts/run_realtime_demo.sh --run-id realtime_demo_01
 ```
 
 生成实时攻防可视化：
 
 ```bash
-.venv/bin/python scripts/visualize_realtime_demo.py --run-id realtime_demo_02
+.venv/bin/python scripts/visualize_realtime_demo.py --run-id realtime_demo_01
 ```
+
+最终结果显示在`data\logs\realtime_demo_11\realtime_visualization_realtime_demo_01.html`
 
 ## CDN / 边缘代理集成
 
